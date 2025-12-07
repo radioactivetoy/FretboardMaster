@@ -208,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Get Context time
             audioEngine.init();
             const now = audioEngine.ctx.currentTime;
-            const stepDuration = 1.2; // Seconds per chord
+            const stepDuration = 1.5; // Slower tempo
 
             let playedCount = 0;
             state.progression.forEach((chord, i) => {
@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 const startTime = now + (playedCount * stepDuration);
-                audioEngine.playChord(freqs, startTime, stepDuration * 0.85);
+                audioEngine.playChord(freqs, startTime, stepDuration * 1.1); // Slight overlap
                 playedCount++;
             });
 
