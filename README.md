@@ -1,6 +1,6 @@
-# 🎸 Fretboard Master
+# ScaleVerse 🌌
 
-**Fretboard Master** is an interactive, browser-based guitar scale and chord visualizer. It helps guitarists understand music theory by visualizing scales, intervals, and chords across the fretboard with high-quality audio playback.
+**ScaleVerse** is an interactive, browser-based multi-instrument scale and chord visualizer. It helps musicians understand music theory by visualizing scales, intervals, and chords across Guitar, Bass, Ukulele, Banjo, and Piano with high-quality audio playback.
 
 ![Fretboard Preview](./fretboard_preview.png)
 *(Note: Add a screenshot here relative to your repo)*
