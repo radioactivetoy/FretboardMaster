@@ -823,7 +823,7 @@ select:focus {
 
 .chord-card:hover {
     border-color: var(--accent-color);
-    transform: translateY(-5px);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
 }
 
 .chord-header {
@@ -913,13 +913,262 @@ select:focus {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
+/* Progression Builder */
+.progression-container {
+    background: rgba(18, 18, 18, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.4s ease;
+}
+
+.progression-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+}
+
+.progression-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--accent-color);
+}
+
+.explorer-layout {
+    display: flex;
+    flex-direction: column;
+    /* Vertical stack */
+    gap: 20px;
+    min-height: 700px;
+    /* Increased to fit large radius + nodes */
+}
+
+/* Timeline (Top Bar) */
+.timeline-wrapper {
+    flex: 0 0 auto;
+    /* Fixed height based on content */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: none;
+    padding-bottom: 15px;
+    padding-right: 0;
+    width: 100%;
+    min-height: 80px;
+}
+
+.progression-timeline {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    overflow-x: auto;
+    padding: 5px;
+    height: 100%;
+}
+
+.timeline-item {
+    background: var(--card-bg);
+    border: 1px solid var(--accent-color);
+    padding: 8px 15px;
+    border-radius: 8px;
+    text-align: center;
+    min-width: 60px;
+    animation: slideInLeft 0.3s ease;
+    flex-shrink: 0;
+}
+
+.t-roman {
+    font-size: 0.8rem;
+    position: relative;
+    top: -2px;
+}
+
+.t-name {
+    font-size: 1rem;
+}
+
+.timeline-arrow {
+    color: #666;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.timeline-start-msg {
+    color: #666;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+/* Graph */
+.progression-graph {
+    flex: 1;
+    position: relative;
+    width: 100%;
+    border-radius: 8px;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+    overflow: hidden;
+    /* Keep nodes inside */
+}
+
+.graph-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #666;
+    font-style: italic;
+    pointer-events: none;
+}
+
+/* Nodes: Using Left/Top centering + margin instead of translate */
+.graph-node {
+    position: absolute;
+    width: 110px;
+    height: 110px;
+    /* Center anchor point */
+    margin-left: -55px;
+    margin-top: -55px;
+
+    border-radius: 50%;
+    background: var(--card-bg);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.2s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    z-index: 50;
+    text-align: center;
+}
+
+.graph-node:hover {
+    transform: scale(1.15);
+    /* Safe now as we don't use translate for pos */
+    border-color: var(--accent-color);
+    z-index: 100;
+}
+
+.center-node {
+    width: 160px;
+    height: 160px;
+    margin-left: -80px;
+    margin-top: -80px;
+
+    left: 50%;
+    top: 50%;
+
+    border-color: var(--accent-color);
+    background: rgba(0, 212, 255, 0.1);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+    z-index: 10;
+}
+
+.center-node:hover {
+    transform: scale(1.05);
+}
+
+.center-node .g-name {
+    font-size: 1.3rem;
+}
+
+.satellite-node {
+    width: 110px;
+    height: 110px;
+    margin-left: -55px;
+    margin-top: -55px;
+}
+
+/* Typography adjustments for fit */
+.g-name {
+    font-weight: bold;
+    color: #fff;
+    font-size: 0.9rem;
+    /* Smaller base size */
+    line-height: 1.1;
+    margin: 2px 0;
+    max-width: 90%;
+}
+
+.g-roman {
+    font-size: 0.8rem;
+    color: #aaa;
+    margin-bottom: 2px;
+}
+
+.g-func {
+    font-size: 0.7rem;
+    color: var(--accent-color);
+    text-transform: uppercase;
+    margin-top: 2px;
+    font-weight: 600;
+}
+
+.g-type-icon {
+    font-size: 0.8rem;
+    margin-top: 2px;
+}
+
+/* Suggestion Types */
+.sugg-resolve {
+    border-color: #2ecc71;
+}
+
+.sugg-resolve:hover {
+    background: rgba(46, 204, 113, 0.2);
+}
+
+.sugg-tension {
+    border-color: #f1c40f;
+}
+
+.sugg-tension:hover {
+    background: rgba(241, 196, 15, 0.2);
+}
+
+.sugg-deceptive {
+    border-color: #9b59b6;
+}
+
+.sugg-deceptive:hover {
+    background: rgba(155, 89, 182, 0.2);
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.action-btn.small {
+    padding: 5px 12px;
+    font-size: 0.9rem;
+}
+
 .chord-detail.selected-detail {
     background-color: rgba(0, 212, 255, 0.15);
     border-color: var(--accent-color);
     box-shadow: 0 0 10px rgba(0, 212, 255, 0.1);
-}
-
-.chord-header {
-    /* Header is informational now, not the clickable trigger */
-    cursor: default;
 }

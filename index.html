@@ -15,6 +15,7 @@
             <button id="drone-btn" class="tool-btn">Drone 🔇</button>
             <button id="settings-btn" class="tool-btn">Settings ⚙️</button>
             <button id="save-btn" class="tool-btn">Save Image 📸</button>
+            <button id="explorer-btn" class="tool-btn">Progression 🕸️</button>
 
             <div id="settings-panel" class="settings-panel hidden">
                 <h3>Configuration</h3>
@@ -146,6 +147,50 @@
                 <!-- Populated by JS -->
             </div>
         </div>
+
+        <!-- Progression Explorer (Hidden by default, toggleable via new button) -->
+        <section id="progression-builder" class="progression-container" style="display: none;">
+            <div class="progression-header">
+                <h2>Harmonic Explorer</h2>
+                <div class="explorer-controls">
+                    <button id="reset-progression" class="action-btn small">Reset Path 🔄</button>
+                    <button id="play-progression-btn" class="action-btn small">Play ▶️</button>
+                </div>
+            </div>
+
+            <div class="legend-container harmonic-legend" style="margin: 0 0 1rem 0; padding: 0.5rem;">
+                <div class="legend-items">
+                    <div class="legend-item"><span class="badge"
+                            style="background:none; border:none; font-size:1.2em">↙️</span> Resolve/Step</div>
+                    <div class="legend-item"><span class="badge"
+                            style="background:none; border:none; font-size:1.2em">↗️</span> Tension</div>
+                    <div class="legend-item"><span class="badge"
+                            style="background:none; border:none; font-size:1.2em">⚡</span> Deceptive</div>
+                    <div class="legend-item"><span class="badge"
+                            style="background:none; border:none; font-size:1.2em">🔄</span> Sec. Dom</div>
+                    <div class="legend-item"><span class="badge"
+                            style="background:none; border:none; font-size:1.2em">🌑</span> Borrowed</div>
+                    <div class="legend-item"><span class="badge"
+                            style="background:none; border:none; font-size:1.2em">🎨</span> Substitutions</div>
+                </div>
+            </div>
+
+            <div class="explorer-layout">
+                <!-- Timeline (History) -->
+                <div class="timeline-wrapper">
+                    <div id="progression-timeline" class="progression-timeline">
+                        <div class="timeline-start-msg">Select a chord from the Grid or Graph to begin...</div>
+                    </div>
+                </div>
+
+                <!-- Graph Area -->
+                <div id="progression-graph" class="progression-graph">
+                    <!-- Dynamic Nodes will be injected here -->
+                    <div class="graph-placeholder">Select a starting chord from the Diatonic Grid to activate the graph.
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>

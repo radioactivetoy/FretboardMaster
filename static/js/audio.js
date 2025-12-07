@@ -23,71 +23,72 @@ class AudioEngine {
         return 440 * Math.pow(2, (midi - 69) / 12);
     }
 
-    playTone(freq) {
+    playTone(freq, time = null, duration = 2.0) {
         this.init();
-        const t = this.ctx.currentTime;
+        const t = time !== null ? time : this.ctx.currentTime;
+        const release = 0.8; // Long tail for resonance
+        const stopTime = t + duration + release;
 
-        // Master Gain
+        // Master Gain (Per Note)
         const masterGain = this.ctx.createGain();
         masterGain.connect(this.ctx.destination);
-        masterGain.gain.setValueAtTime(0.5, t);
 
-        // --- 1. String Body ---
+        // ADSR Envelope
+        // A: 0.05s, D: 0.2s, S: 0.8 level, R: 0.8s
+        masterGain.gain.setValueAtTime(0, t);
+        masterGain.gain.linearRampToValueAtTime(0.12, t + 0.05); // Soft Attack
+        masterGain.gain.exponentialRampToValueAtTime(0.08, t + 0.3); // Decay to Sustain
+        masterGain.gain.setValueAtTime(0.08, t + duration); // Hold Sustain
+        masterGain.gain.exponentialRampToValueAtTime(0.001, stopTime); // Release
+
+        // --- 1. Warm Fundamental (Triangle) ---
         const osc1 = this.ctx.createOscillator();
-        const osc2 = this.ctx.createOscillator();
-        const filter = this.ctx.createBiquadFilter();
-        const stringGain = this.ctx.createGain();
-
-        osc1.type = 'sawtooth';
+        osc1.type = 'triangle';
         osc1.frequency.value = freq;
 
+        // --- 2. String Brightness (Sawtooth, slight detune) ---
+        const osc2 = this.ctx.createOscillator();
         osc2.type = 'sawtooth';
         osc2.frequency.value = freq;
-        osc2.detune.value = 8;
+        osc2.detune.value = 12; // Chorus effect
 
+        // Filter for brightness control
+        const filter = this.ctx.createBiquadFilter();
         filter.type = 'lowpass';
-        filter.Q.value = 3;
-        filter.frequency.setValueAtTime(freq * 5, t);
-        filter.frequency.exponentialRampToValueAtTime(freq, t + 0.3);
+        filter.Q.value = 1;
+        filter.frequency.setValueAtTime(freq * 4, t);
+        filter.frequency.linearRampToValueAtTime(freq * 2, t + 0.5); // Envelope filter
 
-        stringGain.gain.setValueAtTime(0, t);
-        stringGain.gain.linearRampToValueAtTime(1, t + 0.02);
-        stringGain.gain.exponentialRampToValueAtTime(0.01, t + 2.0);
+        // Mixing: Osc1 (Body) + Filtered Osc2 (Bright) -> Master
+        // Use gain nodes to balance mix if needed, or just sum.
+        const osc1Gain = this.ctx.createGain();
+        osc1Gain.gain.value = 0.7; // 70% Body
 
-        osc1.connect(filter);
+        const osc2Gain = this.ctx.createGain();
+        osc2Gain.gain.value = 0.3; // 30% Sparkle
+
+        osc1.connect(osc1Gain);
+        osc1Gain.connect(masterGain);
+
         osc2.connect(filter);
-        filter.connect(stringGain);
-        stringGain.connect(masterGain);
+        filter.connect(osc2Gain);
+        osc2Gain.connect(masterGain);
 
         osc1.start(t);
-        osc1.stop(t + 2.0);
+        osc1.stop(stopTime);
         osc2.start(t);
-        osc2.stop(t + 2.0);
+        osc2.stop(stopTime);
+    }
 
-        // --- 2. Pick Attack ---
-        const noiseBufferSize = this.ctx.sampleRate * 0.05;
-        const buffer = this.ctx.createBuffer(1, noiseBufferSize, this.ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < noiseBufferSize; i++) {
-            data[i] = Math.random() * 2 - 1;
-        }
-
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = buffer;
-        const noiseFilter = this.ctx.createBiquadFilter();
-        const noiseGain = this.ctx.createGain();
-
-        noiseFilter.type = 'highpass';
-        noiseFilter.frequency.value = 1000;
-
-        noiseGain.gain.setValueAtTime(0.5, t);
-        noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.03);
-
-        noise.connect(noiseFilter);
-        noiseFilter.connect(noiseGain);
-        noiseGain.connect(masterGain);
-
-        noise.start(t);
+    playChord(frequencies, time = null, duration = 2.0) {
+        this.init();
+        const t = time !== null ? time : this.ctx.currentTime;
+        // Stagger strumming slightly?
+        let offset = 0;
+        frequencies.forEach((f, i) => {
+            this.playTone(f, t + offset, duration);
+            offset += 0.03; // 30ms strum delay
+        });
     }
 
     toggleDrone(rootName, chromaticScale) {
