@@ -1,5 +1,7 @@
 # ScaleVerse 🌌
 
+**[Live Demo](https://radioactivetoy.github.io/ScaleVerse/)** 🚀
+
 **ScaleVerse** is an interactive, browser-based multi-instrument scale and chord visualizer. It helps musicians understand music theory by visualizing scales, intervals, and chords across Guitar, Bass, Ukulele, Banjo, and Piano with high-quality audio playback.
 
 ![Fretboard Preview](./fretboard_preview.png)
