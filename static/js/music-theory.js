@@ -436,134 +436,188 @@ class MusicTheory {
     }
 
     static getProgressionSuggestions(activeNode, scaleType, scaleData) {
-        // SCALE DATA: [{ note: 'C', interval: '1P' }, ...]
-        // We need the scale root to calculate absolute notes for Secondary Doms.
-        // Assuming element with '1P' or 'R' is root.
-        const rootObj = scaleData.find(n => n.interval === '1P' || n.interval === 'R');
-        const rootNote = rootObj ? rootObj.note : 'C';
-
         const suggestions = [];
         const st = scaleType.toLowerCase();
-
-        const currentDegree = activeNode.degree;
+        const currentDegree = activeNode.degree || 0;
         const roman = activeNode.roman;
 
-        // --- Helper to find Diatonic Note by Degree --- 
-        // degree is 1-based (1..7)
+        // --- Helpers ---
         const getDiatonicNote = (deg) => {
-            // scaleData is ordered? usually.
-            // If not, we map degree to interval?
-            // Major: 1, 2, 3, 4, 5, 6, 7
-            // Minor: 1, 2, 3, 4, 5, 6, 7 (but intervals differ)
-            // Let's assume scaleData length >= deg-1
-            return scaleData[deg - 1] ? scaleData[deg - 1].note : null;
+            const idx = (deg - 1) % 7;
+            return scaleData[idx] ? scaleData[idx].note : null;
         };
 
-        const getNoteAtInterval = (baseNote, semitones) => {
-            const idx = MusicTheory.CHROMATIC_SCALE.indexOf(MusicTheory.normalizeNote(baseNote));
-            return MusicTheory.CHROMATIC_SCALE[(idx + semitones) % 12];
+        const getNoteByInterval = (rootNote, semi) => {
+            const idx = MusicTheory.CHROMATIC_SCALE.indexOf(MusicTheory.normalizeNote(rootNote));
+            return MusicTheory.CHROMATIC_SCALE[(idx + semi) % 12];
         };
 
-        // --- NON-DIATONIC LOGIC (Exotic Resolutions) ---
-        if (!currentDegree || currentDegree === 0) {
-            // Check Roman Numeral for Function
+        const createChord = (root, quality, romanLabel, funcLabel, type) => {
+            const chord = MusicTheory.getChord(root, quality);
+            chord.roman = romanLabel;
+            chord.name = `${root} ${quality === 'Dominant' ? '7' : quality === 'Minor' ? 'm' : ''}`;
+            chord.function = funcLabel;
+            return { type: type, label: romanLabel, chordData: chord, function: funcLabel };
+        };
+
+        // --- 1. Exotic/Non-Diatonic Resolution Logic ---
+        if (currentDegree === 0 || !currentDegree) {
             if (roman === 'V7/V') {
-                suggestions.push({ degree: 5, type: 'resolve', label: 'Resolve to V' });
-                suggestions.push({ degree: 1, type: 'deceptive', label: 'Return to I' });
+                suggestions.push({ degree: 5, type: 'resolve', label: 'Resolve to V', function: 'Dominant' });
+                suggestions.push({ degree: 1, type: 'deceptive', label: 'Return to I', function: 'Tonic' });
+            } if (roman === 'V7/ii') {
+                suggestions.push({ degree: 2, type: 'resolve', label: 'Resolve to ii', function: 'Supertonic' });
+            } else if (roman === 'subV7') {
+                suggestions.push({ degree: 1, type: 'resolve', label: 'Resolve to I', function: 'Tonic' });
+            } else if (roman === 'iv') {
+                suggestions.push({ degree: 1, type: 'resolve', label: 'Plagal Resolve', function: 'Tonic' });
             }
-            else if (roman === 'V7/ii') {
-                suggestions.push({ degree: 2, type: 'resolve', label: 'Resolve to ii' });
+            // Fallback: If we don't know where we are, suggest a return to Tonic
+            if (suggestions.length === 0) {
+                suggestions.push({ degree: 1, type: 'resolve', label: 'Return Home', function: 'Tonic' });
             }
-            else if (roman === 'subV7') {
-                suggestions.push({ degree: 1, type: 'resolve', label: 'Resolve to I' });
-                suggestions.push({ degree: 5, type: 'tension', label: 'To Dominant' });
-            }
-            else if (roman === 'iv') { // Minor Plagal
-                suggestions.push({ degree: 1, type: 'resolve', label: 'Plagal Resolve' });
-                suggestions.push({ degree: 5, type: 'tension', label: 'To Dominant' });
-            }
-            // Fallback for unknowns
-            else {
-                suggestions.push({ degree: 1, type: 'resolve', label: 'Return Home' });
-            }
-
             return suggestions;
         }
 
-        // --- STANDARD DIATONIC MOVES ---
+        // --- 2. Advanced Diatonic Logic (Major/Ionian) ---
         if (st.includes('major') || st.includes('ionian')) {
-            if (currentDegree === 1) { // I -> V, IV, vi
-                suggestions.push({ degree: 5, type: 'tension', label: 'Dominant' });
-                suggestions.push({ degree: 4, type: 'subdominant', label: 'Subdominant' });
-                suggestions.push({ degree: 6, type: 'relative', label: 'Relative Minor' });
-
-                // Secondary Dominant: V7/V (Dominant of V)
-                // V of C is G. Dominant of G is D7.
-                // D is scale degree 2.
-                // So we insert a custom chord object.
-                const vOfV_Root = getDiatonicNote(2); // D
-                if (vOfV_Root) {
-                    const chord = MusicTheory.getChord(vOfV_Root, 'Dominant');
-                    chord.roman = 'V7/V';
-                    chord.name = `${vOfV_Root} 7`;
-                    chord.function = 'Sec. Dom';
-                    suggestions.push({ type: 'secondary', label: 'V7/V', chordData: chord });
-                }
-
-                // Secondary Dominant: V7/ii (Dominant of ii) -> A7 for C major? No, ii is Dm. V of D is A.
-                // A is degree 6.
-                const vOfii_Root = getDiatonicNote(6); // A
-                if (vOfii_Root) {
-                    const chord = MusicTheory.getChord(vOfii_Root, 'Dominant');
-                    chord.roman = 'V7/ii';
-                    chord.name = `${vOfii_Root} 7`;
-                    chord.function = 'Sec. Dom';
-                    suggestions.push({ type: 'secondary', label: 'V7/ii', chordData: chord });
-                }
+            // -- Diatonic Moves --
+            if (currentDegree === 1) { // I
+                suggestions.push({ degree: 5, type: 'tension', label: 'Dominant (V)', function: 'Dominant' });
+                suggestions.push({ degree: 4, type: 'subdominant', label: 'Subdominant (IV)', function: 'Subdominant' });
+                suggestions.push({ degree: 2, type: 'subdominant', label: 'Supertonic (ii)', function: 'Pre-Dom' });
+                suggestions.push({ degree: 6, type: 'relative', label: 'Relative Minor (vi)', function: 'Sub-Mediant' });
+                suggestions.push({ degree: 3, type: 'neutral', label: 'Mediant (iii)', function: 'Mediant' });
             }
-            else if (currentDegree === 2) { // ii -> V, vii°
-                suggestions.push({ degree: 5, type: 'tension', label: 'To Dominant' });
+            else if (currentDegree === 2) { // ii
+                suggestions.push({ degree: 5, type: 'tension', label: 'To Dominant (V)', function: 'Dominant' });
+                suggestions.push({ degree: 7, type: 'tension', label: 'Leading Tone (vii°)', function: 'Dominant' });
+                suggestions.push({ degree: 4, type: 'subdominant', label: 'Subdominant (IV)', function: 'Subdominant' });
             }
-            else if (currentDegree === 3) { // iii -> vi, IV
-                suggestions.push({ degree: 6, type: 'resolve', label: 'Circle Prog' });
+            else if (currentDegree === 3) { // iii
+                suggestions.push({ degree: 6, type: 'resolve', label: 'Circle (vi)', function: 'Sub-Mediant' });
+                suggestions.push({ degree: 4, type: 'subdominant', label: 'Deceptive (IV)', function: 'Subdominant' });
             }
-            else if (currentDegree === 4) { // IV -> V, I, iv (borrowed)
-                suggestions.push({ degree: 5, type: 'tension', label: 'To Dominant' });
-                suggestions.push({ degree: 1, type: 'resolve', label: 'Plagal Cadence' });
+            else if (currentDegree === 4) { // IV
+                suggestions.push({ degree: 5, type: 'tension', label: 'To Dominant (V)', function: 'Dominant' });
+                suggestions.push({ degree: 1, type: 'resolve', label: 'Plagal (I)', function: 'Tonic' });
+                suggestions.push({ degree: 2, type: 'subdominant', label: 'Supertonic (ii)', function: 'Pre-Dom' });
+            }
+            else if (currentDegree === 5) { // V
+                suggestions.push({ degree: 1, type: 'resolve', label: 'Perfect (I)', function: 'Tonic' });
+                suggestions.push({ degree: 6, type: 'deceptive', label: 'Deceptive (vi)', function: 'Sub-Mediant' });
+                suggestions.push({ degree: 4, type: 'subdominant', label: 'Retrogression (IV)', function: 'Subdominant' });
+            }
+            else if (currentDegree === 6) { // vi
+                suggestions.push({ degree: 2, type: 'tension', label: 'Circle (ii)', function: 'Pre-Dom' });
+                suggestions.push({ degree: 4, type: 'subdominant', label: 'Subdominant (IV)', function: 'Subdominant' });
+                suggestions.push({ degree: 3, type: 'neutral', label: 'Mediant (iii)', function: 'Mediant' });
+            }
+            else if (currentDegree === 7) { // vii°
+                suggestions.push({ degree: 1, type: 'resolve', label: 'Resolve (I)', function: 'Tonic' });
+                suggestions.push({ degree: 3, type: 'neutral', label: 'To Mediant (iii)', function: 'Mediant' });
+            }
 
-                // Modal Interchange: Minor Plagal (iv)
-                // Root is same as IV (F), but minor quality.
+            // -- PIVOT MODULATIONS --
+            // 1. Pivot to Relative Minor (vi is new i)
+            // Suggest V7/vi -> vi
+            if ([1, 3, 4, 5].includes(currentDegree)) {
+                const rootVi = getDiatonicNote(6); // A in C
+                // Dominant of vi is E (III in C)
+                const domOfRelative = getDiatonicNote(3); // E
+                // We want E7 (V7/vi)
+                suggestions.push(createChord(domOfRelative, 'Dominant', 'V7/vi', 'Sec. Dom', 'secondary'));
+            }
+
+            // -- SECONDARY DOMINANTS --
+            // V7/V (D7 in C) -> From I, ii, IV, vi
+            if ([1, 2, 4, 6].includes(currentDegree)) {
+                const rootVofV = getDiatonicNote(2); // D
+                suggestions.push(createChord(rootVofV, 'Dominant', 'V7/V', 'Sec. Dom', 'secondary'));
+            }
+            // V7/IV (C7 in C) -> From I, V
+            if ([1, 5].includes(currentDegree)) {
+                // Root is I (C). Quality Dom7.
+                const rootVofIV = getDiatonicNote(1);
+                suggestions.push(createChord(rootVofIV, 'Dominant', 'V7/IV', 'Sec. Dom', 'secondary'));
+            }
+            // V7/ii (A7 in C) -> From I, vi, iii
+            if ([1, 3, 6].includes(currentDegree)) {
+                const rootVofii = getDiatonicNote(6); // A
+                suggestions.push(createChord(rootVofii, 'Dominant', 'V7/ii', 'Sec. Dom', 'secondary'));
+            }
+
+            // -- BORROWED CHORDS (Modal Interchange) --
+            // iv (Minor Plagal) -> From I, IV, V
+            if ([1, 4, 5].includes(currentDegree)) {
                 const rootIV = getDiatonicNote(4);
-                if (rootIV) {
-                    const chord = MusicTheory.getChord(rootIV, 'Minor');
-                    chord.roman = 'iv';
-                    chord.name = `${rootIV} m`;
-                    chord.function = 'Borrowed';
-                    suggestions.push({ type: 'borrowed', label: 'Minor Plagal', chordData: chord });
-                }
+                suggestions.push(createChord(rootIV, 'Minor', 'iv', 'Borrowed', 'borrowed'));
             }
-            else if (currentDegree === 5) { // V -> I, vi, V7/V (back cycle?)
-                suggestions.push({ degree: 1, type: 'resolve', label: 'Perfect Cadence' });
-                suggestions.push({ degree: 6, type: 'deceptive', label: 'Deceptive' });
+            // bVI (Ab in C) -> From I, iv
+            if (currentDegree === 1) {
+                const rootNote = scaleData[0].note;
+                const rootb6 = getNoteByInterval(rootNote, 8); // m6 interval
+                suggestions.push(createChord(rootb6, 'Major', 'bVI', 'Borrowed', 'borrowed'));
+            }
+            // bVII (Bb in C) -> Backdoor Cadence
+            if ([1, 4].includes(currentDegree)) {
+                const rootNote = scaleData[0].note;
+                const rootb7 = getNoteByInterval(rootNote, 10); // m7 interval
+                suggestions.push(createChord(rootb7, 'Major', 'bVII', 'Backdoor', 'borrowed'));
+            }
 
-                // Tritone Substitution: bII7
-                // Root is b2 (Db in C).
-                const rootb2 = getNoteAtInterval(rootNote, 1); // C + 1 = C#/Db
-                const chord = MusicTheory.getChord(rootb2, 'Dominant');
-                chord.roman = 'subV7';
-                chord.name = `${rootb2} 7`;
-                chord.function = 'Tritone Sub';
-                suggestions.push({ type: 'chromatic', label: 'Tritone Sub', chordData: chord });
+            // -- TRITONE SUBSTITUTION --
+            // From V or ii -> subV7 (Db7 in C)
+            if ([2, 5].includes(currentDegree)) {
+                const rootNote = scaleData[0].note;
+                const rootb2 = getNoteByInterval(rootNote, 1); // m2
+                // subV7 typically resolves to I
+                suggestions.push(createChord(rootb2, 'Dominant', 'subV7', 'Tritone Sub', 'chromatic'));
             }
-            else if (currentDegree === 6) { // vi -> ii, IV
-                suggestions.push({ degree: 2, type: 'tension', label: 'Circle Prog' });
+
+            // --- ACTIVE MODULATION SUGGESTIONS ---
+            // If we are on the vi (Relative Minor), offer effective key change
+            if (currentDegree === 6) {
+                const newRoot = activeNode.name.split(' ')[0]; // "A m" -> "A"
+                suggestions.push({
+                    type: 'modulation',
+                    label: `Modulate to ${newRoot} Minor`,
+                    newKey: { root: newRoot, type: 'Minor' }
+                });
             }
-        }
-        // Simple generic fallback for other degrees/modes
-        else {
-            // Fallback to basic circle of fifths logic logic for now
-            const circleFive = (currentDegree + 3) % 7 || 7; // Approx
-            suggestions.push({ degree: 1, type: 'resolve', label: 'Return' });
+            // If we are on the V (Dominant), offer modulation to Dominant Key
+            if (currentDegree === 5) {
+                const newRoot = activeNode.name.split(' ')[0];
+                suggestions.push({
+                    type: 'modulation',
+                    label: `Modulate to ${newRoot} Major`,
+                    newKey: { root: newRoot, type: 'Major' }
+                });
+            }
+            // If we are on the IV (Subdominant), offer modulation to Subdominant Key
+            if (currentDegree === 4) {
+                const newRoot = activeNode.name.split(' ')[0];
+                suggestions.push({
+                    type: 'modulation',
+                    label: `Modulate to ${newRoot} Major`,
+                    newKey: { root: newRoot, type: 'Major' }
+                });
+            }
+            // If we are on the I (Tonic), offer Parallel Minor modulation
+            if (currentDegree === 1) {
+                const newRoot = activeNode.name.split(' ')[0];
+                suggestions.push({
+                    type: 'modulation',
+                    label: `Modulate to ${newRoot} Minor`,
+                    newKey: { root: newRoot, type: 'Minor' }
+                });
+            }
+
+        } else {
+            // Fallback for minor/other scales for now (basic logic)
+            const nextDeg = (currentDegree % 7) + 1;
+            suggestions.push({ degree: 1, type: 'resolve', label: 'Return Home', function: 'Tonic' });
+            suggestions.push({ degree: nextDeg, type: 'tension', label: 'Next Step', function: 'Step' });
         }
 
         return suggestions;

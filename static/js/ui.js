@@ -304,14 +304,19 @@ class UI {
             this.state.progression.forEach((chord, idx) => {
                 const item = document.createElement('div');
                 item.className = 'timeline-item';
+
+                // Transition Info (Badge)
+                let metaHtml = '';
+                if (chord.transitionIcon) {
+                    metaHtml = `<div class="t-meta" title="${chord.transitionLabel}">${chord.transitionIcon}</div>`;
+                }
+
                 item.innerHTML = `
+                    ${metaHtml}
                     <div class="t-roman">${chord.roman}</div>
                     <div class="t-name">${chord.name}</div>
+                    <div class="t-func">${chord.function || ''}</div>
                 `;
-
-                // Allow jumping back to this point (truncating future? or just viewing?)
-                // For now just viewing/active state could be complex.
-                // Let's keep it simple: History log.
 
                 this.progressionTimeline.appendChild(item);
 
@@ -370,6 +375,58 @@ class UI {
         suggestions.forEach((sugg, i) => {
             let targetChord = null;
 
+            // SPECIAL: Modulation Node
+            if (sugg.type === 'modulation') {
+                // Calculate position (same logic)
+                const angle = (i / total) * 2 * Math.PI - (Math.PI / 2);
+                const offsetX = Math.cos(angle) * 220;
+                const offsetY = Math.sin(angle) * 220;
+
+                const node = document.createElement('div');
+                node.className = `graph-node satellite-node sugg-modulation`;
+                node.style.left = `calc(50% + ${offsetX}px)`;
+                node.style.top = `calc(50% + ${offsetY}px)`;
+                node.style.borderColor = '#ffd700'; // Gold border
+                node.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.5)';
+
+                node.innerHTML = `
+                    <div class="g-roman">KEY</div>
+                    <div class="g-name" style="font-size: 0.9em;">${sugg.newKey.root} ${sugg.newKey.type}</div>
+                    <div class="g-func">Modulate</div>
+                    <div class="g-type-icon">🚀</div>
+                `;
+
+                node.addEventListener('click', () => {
+                    // 1. Add Marker to History
+                    const modNode = {
+                        roman: 'Key Change',
+                        name: `${sugg.newKey.root} ${sugg.newKey.type}`,
+                        function: 'Modulation',
+                        transitionType: 'modulation',
+                        transitionIcon: '🚀',
+                        transitionLabel: `Modulating to ${sugg.newKey.root}`
+                    };
+                    this.state.addToProgression(modNode);
+
+                    // 2. Trigger Global Key Change
+                    const rootSelect = document.getElementById('root-select');
+                    const scaleSelect = document.getElementById('scale-select');
+
+                    if (rootSelect && scaleSelect) {
+                        rootSelect.value = sugg.newKey.root;
+                        // Ensure case matches option values (usually Title Case e.g. "Major", "Minor")
+                        scaleSelect.value = sugg.newKey.type;
+
+                        // Trigger update
+                        rootSelect.dispatchEvent(new Event('change'));
+                        // Reset graph after update is handled by app? App calls render, which resets graph.
+                    }
+                });
+
+                this.progressionGraph.appendChild(node);
+                return; // Done for this suggestion
+            }
+
             // 1. Check if suggestion provides full chord data (Secondary Dominant etc)
             if (sugg.chordData) {
                 targetChord = sugg.chordData;
@@ -398,7 +455,9 @@ class UI {
             // Ensure Function is displayed. 
             // For diatonic: use targetChord.function.
             // For custom: use sugg.label or targetChord.function (I set 'Sec. Dom' in logic).
-            const funcLabel = targetChord.function || sugg.label || '';
+            // Prioritize specific label from suggestion engine (e.g. "Relative Minor")
+            // Fallback to generic function (e.g. "Tonic")
+            const funcLabel = sugg.label || targetChord.function || '';
 
             node.innerHTML = `
                 <div class="g-roman">${targetChord.roman}</div>
@@ -409,11 +468,24 @@ class UI {
 
             // Interaction: Click to Travel
             node.addEventListener('click', () => {
+                // If it's the first chord, add the start node too? 
+                // Currently Logic: addToProgression just pushes. 
+                // But we want to preserve the *transition* logic.
+
                 if (this.state.progression.length === 0) {
-                    this.state.addToProgression(activeNode);
+                    // Add the seed node as 'start'
+                    const seed = { ...activeNode, transitionType: 'start', transitionIcon: '🏁' };
+                    this.state.addToProgression(seed);
                 }
 
-                this.state.addToProgression(targetChord);
+                // Add target with transition metadata
+                const historyNode = {
+                    ...targetChord,
+                    transitionType: sugg.type,
+                    transitionIcon: this.getSuggIcon(sugg.type),
+                    transitionLabel: sugg.label || ''
+                };
+                this.state.addToProgression(historyNode);
             });
 
             this.progressionGraph.appendChild(node);
