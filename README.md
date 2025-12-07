@@ -8,20 +8,22 @@
 ## ✨ Features
 
 - **Interactive Fretboard**: Visualizes scales, notes, and intervals dynamically.
+- **Interactive Chord Selection**: Click any diatonic chord card to highlight its notes. 
+    - **Triads & 7ths**: Independently selectable. Click the top of a card for the Triad, or the bottom for the 7th chord.
+    - **Visual Feedback**: Selected chords light up directly on the fretboard.
 - **High-Quality Audio**: Custom-built **Dual Oscillator Synthesis** engine with pick attack noise for realistic guitar tone.
 - **Extended Range Support**: Fully supports **7-String** and **8-String** guitars.
 - **Drone Mode**: Play a continuous background reference tone (Root Note) to practice modes and intonation.
-- **Chord Highlighting**: Select chords to see how they fit within the scale (Triads & 7ths).
 - **Custom Tunings**: Support for Standard, Drop D, DADGAD, Open G, and more.
 - **Save as Image**: Export your current fretboard view as a high-resolution PNG.
-- **100% Client-Side**: No backend required. Runs entirely in the browser using modern HTML5, CSS3, and JavaScript (Web Audio API).
+- **100% Client-Side**: No backend required. Runs entirely in the browser using modern HTML5, CSS3, and JavaScript (Web Audio API) with a **modular architecture**.
 
 ## 🚀 How to Use
 
 ### Running Locally
-Since this is a static application, you can simply:
+Since this is a static application using the Namespace pattern, you can simply:
 1.  **Double-click** `index.html` to open it in your browser.
-2.  *Optional*: For a better experience (to avoid CORS issues with some local file assets if you add proper icons later), run a simple local server:
+2.  *Optional*: Run a simple local server if you prefer:
     ```bash
     npx serve .
     ```
@@ -30,6 +32,7 @@ Since this is a static application, you can simply:
 - **Root & Scale**: Choose your key (e.g., C Major, A Minor Pentatonic).
 - **Show As**: Toggle between Note Names (C, D, E) and Intervals (R, M3, P5).
 - **Drone 🔊**: Toggle the bass drone note on/off.
+- **Interactive Chords**: Click the cards below the visualization to highlight specific chords.
 - **Settings ⚙️**: Select your **Instrument** and **Tuning**:
     - **Guitar**: 6, 7, 8 String
     - **Bass**: 4, 5, 6 String
@@ -40,10 +43,15 @@ Since this is a static application, you can simply:
 - **Save Image 📷**: Download the current visualization.
 
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack & Architecture
 
 - **Frontend**: HTML5, Vanilla CSS3 (Variables, Flexbox/Grid).
-- **Logic**: Vanilla JavaScript (ES6+).
+- **Logic**: Vanilla JavaScript (ES6+) organized into **Namespaced Modules**:
+    - `audio.js`: Synthesizer and audio context management.
+    - `ui.js`: DOM manipulation and rendering (Fretboard, Piano, Chords).
+    - `state.js`: Centralized state management.
+    - `music-theory.js`: Pure logic for scale/chord calculations.
+    - `app.js`: Application entry point and event orchestration.
 - **Audio**: Web Audio API (Oscillators, Filters, Gain Nodes).
 - **Dependencies**: 
     - `html2canvas` (for image export).
