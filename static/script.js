@@ -10,6 +10,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const scaleNameElement = document.getElementById('current-scale-name');
     const chordNameElement = document.getElementById('selected-chord-name');
     const scaleNotesElement = document.getElementById('scale-notes');
+    const diatonicGrid = document.querySelector('.diatonic-grid');
+
+    // Save Image Feature
+    const saveBtn = document.getElementById('save-btn');
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsPanel = document.getElementById('settings-panel');
 
     const chromaticScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -90,6 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateInfo(data);
         } catch (error) {
             console.error('Error calculating scale:', error);
+            // alert(`Error: ${error.message}`);
         }
     }
 
@@ -445,14 +452,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     isChordTone = true;
                 }
 
-                // If we are in "Chord Mode" (chordNotes not null), we typically ONLY highlight chord tones?
-                // Or we highlight scale tones dimly and chord tones brightly?
-                // Visualizer logic in Fretboard was: Badges show for all scale notes.
-                // Replicate Fretboard Logic:
-                // If Chord Selected:
-                //   - Highlight Chord Tones (Visible)
-                //   - Scale Tones (Normal/Dimmed implicitly by lack of highlight class)
-
                 // Create Marker
                 const marker = document.createElement('div');
                 marker.className = `key-marker ${getIntervalClass(scaleInfo.interval)}`;
@@ -570,6 +569,81 @@ document.addEventListener('DOMContentLoaded', () => {
 
             scaleNotesElement.appendChild(badge);
         });
+
+        // Call Diatonic Chords Render
+        renderDiatonicChords(data);
+    }
+
+    function renderDiatonicChords(data) {
+        if (!diatonicGrid) return;
+        diatonicGrid.innerHTML = '';
+
+        // Fetch Triads and 7ths with Scale Type for Function logic
+        const triads = MusicTheory.getDiatonicChords(data.scale_data, 'triad', data.type);
+        const sevenths = MusicTheory.getDiatonicChords(data.scale_data, 'seventh', data.type);
+
+        triads.forEach((triad, index) => {
+            const seventh = sevenths[index];
+
+            const card = document.createElement('div');
+            card.className = 'chord-card';
+
+            // Header: Roman Numeral and Root
+            const header = document.createElement('div');
+            header.className = 'chord-header';
+            header.innerHTML = `
+                <div class="chord-title-row">
+                    <span class="degree-label">${triad.roman}</span> 
+                    <strong>${triad.root}</strong>
+                </div>
+                <div class="function-label">${triad.function}</div>
+            `;
+            card.appendChild(header);
+
+            // Triad Info
+            const triadInfo = document.createElement('div');
+            triadInfo.className = 'chord-detail';
+            triadInfo.innerHTML = `<div class="chord-name">${triad.name}</div>`;
+
+            const triadNotes = document.createElement('div');
+            triadNotes.className = 'chord-notes-mini';
+            triad.notes.forEach(note => {
+                const scaleItem = data.scale_data.find(s => s.note === note);
+                const intervalClass = scaleItem ? getIntervalClass(scaleItem.interval) : '';
+
+                const dot = document.createElement('span');
+                dot.className = `mini-badge ${intervalClass}`;
+                dot.textContent = note;
+                triadNotes.appendChild(dot);
+            });
+            triadInfo.appendChild(triadNotes);
+            card.appendChild(triadInfo);
+
+            // Seventh Info (Separator)
+            const separator = document.createElement('div');
+            separator.className = 'chord-separator';
+            card.appendChild(separator);
+
+            const seventhInfo = document.createElement('div');
+            seventhInfo.className = 'chord-detail';
+            seventhInfo.innerHTML = `<div class="chord-name">${seventh.name}</div>`;
+
+            const seventhNotes = document.createElement('div');
+            seventhNotes.className = 'chord-notes-mini';
+            seventh.notes.forEach(note => {
+                const scaleItem = data.scale_data.find(s => s.note === note);
+                const intervalClass = scaleItem ? getIntervalClass(scaleItem.interval) : '';
+
+                const dot = document.createElement('span');
+                dot.className = `mini-badge ${intervalClass}`;
+                dot.textContent = note;
+                seventhNotes.appendChild(dot);
+            });
+            seventhInfo.appendChild(seventhNotes);
+            card.appendChild(seventhInfo);
+
+            diatonicGrid.appendChild(card);
+        });
     }
 
     // Event Listeners
@@ -594,11 +668,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tuningSelect.addEventListener('change', updateScale);
     }
 
-    // Save Image Feature
-    const saveBtn = document.getElementById('save-btn');
-    const settingsBtn = document.getElementById('settings-btn');
-    const settingsPanel = document.getElementById('settings-panel');
-
     // Toggle Settings Panel
     settingsBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -611,19 +680,16 @@ document.addEventListener('DOMContentLoaded', () => {
             settingsPanel.classList.add('hidden');
         }
     });
+
     if (saveBtn) {
         saveBtn.addEventListener('click', () => {
-            // We capture the fretboard container to get the whole scrollable area if we want, 
-            // but usually we want the visible part or the specific #fretboard element.
-            // Let's capture #fretboard to get the wood background and everything.
-
             // Visual feedback
             const originalText = saveBtn.textContent;
             saveBtn.textContent = 'Capturing...';
 
             html2canvas(document.querySelector("#fretboard"), {
-                backgroundColor: null, // Keep transparency if any (though we have wood bg)
-                scale: 2 // High res
+                backgroundColor: null,
+                scale: 2
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `Fretboard-${scaleNameElement.textContent.replace(/\s+/g, '-')}.png`;

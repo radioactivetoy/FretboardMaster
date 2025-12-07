@@ -145,7 +145,7 @@ class MusicTheory {
         return scaleData;
     }
 
-    static getDiatonicChords(scaleData, complexity = 'triad') {
+    static getDiatonicChords(scaleData, complexity = 'triad', scaleType = 'major') {
         const chords = [];
         const scaleLen = scaleData.length;
 
@@ -197,11 +197,59 @@ class MusicTheory {
 
             const chordName = `${root.note} ${quality}`;
 
+            // Roman Numeral Logic
+            let roman = i + 1; // Default to number if weird
+            const romanMap = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+            const romanBase = romanMap[i];
+
+            if (quality.includes("Major") || quality.includes("Augmented") || quality.includes("Dom")) {
+                roman = romanBase;
+            } else {
+                roman = romanBase.toLowerCase();
+            }
+
+            // Quality Suffix for Roman
+            let romanSuffix = "";
+            if (quality.includes("Diminished") || quality.includes("dim")) romanSuffix = "°";
+            if (quality.includes("Augmented") || quality.includes("Aug")) romanSuffix = "+";
+            if (quality.includes("b5") && !quality.includes("m7b5") && !quality.includes("dim")) romanSuffix = "(b5)";
+
+            // 7ths
+            if (complexity === 'seventh') {
+                if (quality.includes("Maj7")) romanSuffix += "maj7";
+                else if (quality.includes("Dom7")) romanSuffix += "7";
+                else if (quality.includes("m7")) romanSuffix += "7";
+                else if (quality.includes("m(maj7)")) romanSuffix += "m(maj7)";
+                else if (quality.includes("m7b5")) romanSuffix += "ø7"; // Half-diminished
+                else if (quality.includes("dim7")) romanSuffix += "°7"; // Fully diminished
+            }
+
+            const romanNumeral = roman + romanSuffix;
+
+            // Harmonic Function Logic
+            let harmonicFunction = "";
+            // Simplify scaleType
+            const st = scaleType.toLowerCase();
+            const sDegree = i + 1;
+
+            if (st.includes('major') || st.includes('ionian')) {
+                const map = { 1: 'Tonic', 2: 'Subdominant', 3: 'Tonic', 4: 'Subdominant', 5: 'Dominant', 6: 'Tonic', 7: 'Dominant' };
+                harmonicFunction = map[sDegree];
+            } else if (st.includes('minor') || st.includes('aeolian')) {
+                const map = { 1: 'Tonic', 2: 'Subdominant', 3: 'Tonic', 4: 'Subdominant', 5: 'Dominant', 6: 'Subdominant', 7: 'Dominant' };
+                harmonicFunction = map[sDegree];
+            } else {
+                const map = { 1: 'Tonic', 4: 'Subdominant', 5: 'Dominant' };
+                harmonicFunction = map[sDegree] || "";
+            }
+
             chords.push({
                 degree: i + 1,
                 root: root.note,
                 notes: chordNotes,
-                name: chordName
+                name: chordName,
+                roman: romanNumeral,
+                function: harmonicFunction
             });
         }
 
@@ -361,7 +409,7 @@ class MusicTheory {
     // Main interface method to mimic the API response structure
     static getData(root, type, complexity, tuning) {
         const scaleData = MusicTheory.getScale(root, type);
-        const chords = MusicTheory.getDiatonicChords(scaleData, complexity);
+        const chords = MusicTheory.getDiatonicChords(scaleData, complexity, type);
         const fretboardMapping = MusicTheory.getFretboardMapping(scaleData, tuning);
         const tuningMidi = MusicTheory.getTuningMidi(tuning);
         const characteristicIntervals = MusicTheory.getCharacteristicIntervals(type);
