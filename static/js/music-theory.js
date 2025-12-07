@@ -77,6 +77,10 @@ class MusicTheory {
         return MusicTheory.FLAT_EQUIVALENTS[note] || note;
     }
 
+    static getNoteFromMidi(midi) {
+        return MusicTheory.CHROMATIC_SCALE[midi % 12];
+    }
+
     static getScale(rootName, scaleType) {
         rootName = MusicTheory.normalizeNote(rootName);
         if (!MusicTheory.CHROMATIC_SCALE.includes(rootName)) {
@@ -206,15 +210,7 @@ class MusicTheory {
             if (quality.includes("Augmented") || quality.includes("Aug")) romanSuffix = "+";
             if (quality.includes("b5") && !quality.includes("m7b5") && !quality.includes("dim")) romanSuffix = "(b5)";
 
-            // 7ths
-            if (complexity === 'seventh') {
-                if (quality.includes("Maj7")) romanSuffix += "maj7";
-                else if (quality.includes("Dom7")) romanSuffix += "7";
-                else if (quality.includes("m7")) romanSuffix += "7";
-                else if (quality.includes("m(maj7)")) romanSuffix += "m(maj7)";
-                else if (quality.includes("m7b5")) romanSuffix += "ø7"; // Half-diminished
-                else if (quality.includes("dim7")) romanSuffix += "°7"; // Fully diminished
-            }
+
 
             const romanNumeral = roman + romanSuffix;
 
@@ -364,33 +360,212 @@ class MusicTheory {
     static getData(root, type, complexity, tuning) {
         const scaleData = MusicTheory.getScale(root, type);
         const chords = MusicTheory.getDiatonicChords(scaleData, complexity, type);
-        // Note: Complexity is kind of legacy now for getDiatonicChords generation,
-        // but kept if we want to filter return, however we now want both. 
-        // Actually getDiatonicChords was returning ONE set based on complexity.
-        // We probably want to update GET DATA to return EVERYTHING so UI can decide?
-        // Ah, `getDiatonicChords` logic:
-        // if complexity === 'seventh', it adds 7th note and changes quality name.
-        // else it stops at triad.
-
-        // For the new UI, we are calling getDiatonicChords TWICE in script.js (once for triad, once for seventh).
-        // BUT here in getData, we call it ONCE based on complexity argument.
-        // The script.js logic manually calls MusicTheory.getDiatonicChords now!
-        // So getData might be less important or needs to return raw data for script.js to consume?
-        // Let's keep it as is for now to avoid breaking changes, 
-        // script.js actually re-calls getDiatonicChords locally in render function.
 
         const fretboardMapping = MusicTheory.getFretboardMapping(scaleData, tuning);
         const tuningMidi = MusicTheory.getTuningMidi(tuning);
         const characteristicIntervals = MusicTheory.getCharacteristicIntervals(type);
 
+        // Format type name (e.g. "harmonic_minor" -> "Harmonic Minor")
+        const typeName = type.split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+
         return {
             root: root,
             type: type,
+            type_name: typeName,
             scale_data: scaleData,
             chords: chords,
             fretboard: fretboardMapping,
             tuning_midi: tuningMidi,
             characteristic_intervals: characteristicIntervals
         };
+    }
+
+    static getChord(rootNote, quality, extension = '') {
+        // Helper to generate a chord object on the fly (for non-diatonic chords)
+        // quality: 'Major', 'Minor', 'Diminished', 'Augmented', 'Dominant'
+        let intervals = [];
+        let suffix = '';
+        let typeName = quality;
+
+        // Simple map for basic chord construction
+        switch (quality.toLowerCase()) {
+            case 'major': intervals = ['1P', '3M', '5P']; suffix = ''; break;
+            case 'minor': intervals = ['1P', '3m', '5P']; suffix = 'm'; break;
+            case 'diminished': intervals = ['1P', '3m', '5d']; suffix = 'dim'; break;
+            case 'augmented': intervals = ['1P', '3M', '5A']; suffix = 'aug'; break;
+            case 'dominant': intervals = ['1P', '3M', '5P', '7m']; suffix = '7'; break;
+            case 'min7': intervals = ['1P', '3m', '5P', '7m']; suffix = 'm7'; break;
+            case 'maj7': intervals = ['1P', '3M', '5P', '7M']; suffix = 'maj7'; break;
+            case 'm7b5': intervals = ['1P', '3m', '5d', '7m']; suffix = 'm7b5'; break;
+            case 'dim7': intervals = ['1P', '3m', '5d', '7d']; suffix = 'dim7'; break;
+        }
+
+        // If extension provided, override/append? For now assume quality covers it.
+        // Calculate notes
+        const rootIndex = MusicTheory.CHROMATIC_SCALE.indexOf(MusicTheory.normalizeNote(rootNote));
+        const notes = intervals.map(int => {
+            // Logic to get note at interval from root
+            // We need an interval-to-semitone map
+            // We have INTERVAL_NAMES which is array of arrays? No wait.
+            // Let's rely on semitones.
+            // 1P=0, 3m=3, 3M=4, 5d=6, 5P=7, 5A=8, 7d=9, 7m=10, 7M=11
+            let semi = 0;
+            if (int === '3m') semi = 3;
+            if (int === '3M') semi = 4;
+            if (int === '5d') semi = 6;
+            if (int === '5P') semi = 7;
+            if (int === '5A') semi = 8;
+            if (int === '7d') semi = 9;
+            if (int === '7m') semi = 10;
+            if (int === '7M') semi = 11;
+
+            return MusicTheory.CHROMATIC_SCALE[(rootIndex + semi) % 12];
+        });
+
+        // Determine Roman? Hard without context of key. This is for display.
+        return {
+            root: rootNote,
+            name: `${rootNote}${suffix} `,
+            quality: quality,
+            notes: notes,
+            roman: '?', // Will set in context
+            degree: 0
+        };
+    }
+
+    static getProgressionSuggestions(activeNode, scaleType, scaleData) {
+        // SCALE DATA: [{ note: 'C', interval: '1P' }, ...]
+        // We need the scale root to calculate absolute notes for Secondary Doms.
+        // Assuming element with '1P' or 'R' is root.
+        const rootObj = scaleData.find(n => n.interval === '1P' || n.interval === 'R');
+        const rootNote = rootObj ? rootObj.note : 'C';
+
+        const suggestions = [];
+        const st = scaleType.toLowerCase();
+
+        const currentDegree = activeNode.degree;
+        const roman = activeNode.roman;
+
+        // --- Helper to find Diatonic Note by Degree --- 
+        // degree is 1-based (1..7)
+        const getDiatonicNote = (deg) => {
+            // scaleData is ordered? usually.
+            // If not, we map degree to interval?
+            // Major: 1, 2, 3, 4, 5, 6, 7
+            // Minor: 1, 2, 3, 4, 5, 6, 7 (but intervals differ)
+            // Let's assume scaleData length >= deg-1
+            return scaleData[deg - 1] ? scaleData[deg - 1].note : null;
+        };
+
+        const getNoteAtInterval = (baseNote, semitones) => {
+            const idx = MusicTheory.CHROMATIC_SCALE.indexOf(MusicTheory.normalizeNote(baseNote));
+            return MusicTheory.CHROMATIC_SCALE[(idx + semitones) % 12];
+        };
+
+        // --- NON-DIATONIC LOGIC (Exotic Resolutions) ---
+        if (!currentDegree || currentDegree === 0) {
+            // Check Roman Numeral for Function
+            if (roman === 'V7/V') {
+                suggestions.push({ degree: 5, type: 'resolve', label: 'Resolve to V' });
+                suggestions.push({ degree: 1, type: 'deceptive', label: 'Return to I' });
+            }
+            else if (roman === 'V7/ii') {
+                suggestions.push({ degree: 2, type: 'resolve', label: 'Resolve to ii' });
+            }
+            else if (roman === 'subV7') {
+                suggestions.push({ degree: 1, type: 'resolve', label: 'Resolve to I' });
+                suggestions.push({ degree: 5, type: 'tension', label: 'To Dominant' });
+            }
+            else if (roman === 'iv') { // Minor Plagal
+                suggestions.push({ degree: 1, type: 'resolve', label: 'Plagal Resolve' });
+                suggestions.push({ degree: 5, type: 'tension', label: 'To Dominant' });
+            }
+            // Fallback for unknowns
+            else {
+                suggestions.push({ degree: 1, type: 'resolve', label: 'Return Home' });
+            }
+
+            return suggestions;
+        }
+
+        // --- STANDARD DIATONIC MOVES ---
+        if (st.includes('major') || st.includes('ionian')) {
+            if (currentDegree === 1) { // I -> V, IV, vi
+                suggestions.push({ degree: 5, type: 'tension', label: 'Dominant' });
+                suggestions.push({ degree: 4, type: 'subdominant', label: 'Subdominant' });
+                suggestions.push({ degree: 6, type: 'relative', label: 'Relative Minor' });
+
+                // Secondary Dominant: V7/V (Dominant of V)
+                // V of C is G. Dominant of G is D7.
+                // D is scale degree 2.
+                // So we insert a custom chord object.
+                const vOfV_Root = getDiatonicNote(2); // D
+                if (vOfV_Root) {
+                    const chord = MusicTheory.getChord(vOfV_Root, 'Dominant');
+                    chord.roman = 'V7/V';
+                    chord.name = `${vOfV_Root} 7`;
+                    chord.function = 'Sec. Dom';
+                    suggestions.push({ type: 'secondary', label: 'V7/V', chordData: chord });
+                }
+
+                // Secondary Dominant: V7/ii (Dominant of ii) -> A7 for C major? No, ii is Dm. V of D is A.
+                // A is degree 6.
+                const vOfii_Root = getDiatonicNote(6); // A
+                if (vOfii_Root) {
+                    const chord = MusicTheory.getChord(vOfii_Root, 'Dominant');
+                    chord.roman = 'V7/ii';
+                    chord.name = `${vOfii_Root} 7`;
+                    chord.function = 'Sec. Dom';
+                    suggestions.push({ type: 'secondary', label: 'V7/ii', chordData: chord });
+                }
+            }
+            else if (currentDegree === 2) { // ii -> V, vii°
+                suggestions.push({ degree: 5, type: 'tension', label: 'To Dominant' });
+            }
+            else if (currentDegree === 3) { // iii -> vi, IV
+                suggestions.push({ degree: 6, type: 'resolve', label: 'Circle Prog' });
+            }
+            else if (currentDegree === 4) { // IV -> V, I, iv (borrowed)
+                suggestions.push({ degree: 5, type: 'tension', label: 'To Dominant' });
+                suggestions.push({ degree: 1, type: 'resolve', label: 'Plagal Cadence' });
+
+                // Modal Interchange: Minor Plagal (iv)
+                // Root is same as IV (F), but minor quality.
+                const rootIV = getDiatonicNote(4);
+                if (rootIV) {
+                    const chord = MusicTheory.getChord(rootIV, 'Minor');
+                    chord.roman = 'iv';
+                    chord.name = `${rootIV} m`;
+                    chord.function = 'Borrowed';
+                    suggestions.push({ type: 'borrowed', label: 'Minor Plagal', chordData: chord });
+                }
+            }
+            else if (currentDegree === 5) { // V -> I, vi, V7/V (back cycle?)
+                suggestions.push({ degree: 1, type: 'resolve', label: 'Perfect Cadence' });
+                suggestions.push({ degree: 6, type: 'deceptive', label: 'Deceptive' });
+
+                // Tritone Substitution: bII7
+                // Root is b2 (Db in C).
+                const rootb2 = getNoteAtInterval(rootNote, 1); // C + 1 = C#/Db
+                const chord = MusicTheory.getChord(rootb2, 'Dominant');
+                chord.roman = 'subV7';
+                chord.name = `${rootb2} 7`;
+                chord.function = 'Tritone Sub';
+                suggestions.push({ type: 'chromatic', label: 'Tritone Sub', chordData: chord });
+            }
+            else if (currentDegree === 6) { // vi -> ii, IV
+                suggestions.push({ degree: 2, type: 'tension', label: 'Circle Prog' });
+            }
+        }
+        // Simple generic fallback for other degrees/modes
+        else {
+            // Fallback to basic circle of fifths logic logic for now
+            const circleFive = (currentDegree + 3) % 7 || 7; // Approx
+            suggestions.push({ degree: 1, type: 'resolve', label: 'Return' });
+        }
+
+        return suggestions;
     }
 }

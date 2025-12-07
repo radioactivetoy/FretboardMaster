@@ -12,6 +12,21 @@ class State {
             displayMode: 'notes',
             complexity: 'triad' // internal default
         };
+
+        this.progression = []; // Array of chord objects
+        this.activeGraphNode = null; // The chord currently centered in the graph
+    }
+
+    addToProgression(chord) {
+        this.progression.push(chord);
+        this.activeGraphNode = chord;
+        this.triggerUpdate();
+    }
+
+    resetProgression() {
+        this.progression = [];
+        this.activeGraphNode = null;
+        this.triggerUpdate();
     }
 
     resetSelection() {

@@ -25,9 +25,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 audioEngine.updateDroneFrequency(root, MusicTheory.CHROMATIC_SCALE);
             }
 
+            // Construct Instrument Object for UI
+            const instrumentObj = {
+                name: instrument,
+                strings: data.tuning_midi.map(m => ({
+                    string: MusicTheory.getNoteFromMidi(m), // generic name
+                    midi: m
+                }))
+            };
+
+            // Determine Range Type (for Piano vs Fretboard)
+            // If instrument name contains 'Piano', pass specific range
+            let rangeType = 'fretboard';
+            if (instrument.includes('Piano')) {
+                rangeType = instrument; // Pass full name e.g. "Grand Piano"
+            }
+
             // Rendering
-            ui.updateInfo(data);
-            ui.renderFretboard(data);
+            ui.render(data, instrumentObj, rangeType);
 
         } catch (error) {
             console.error('Error updating app:', error);
@@ -45,8 +60,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const displayModeSelect = document.getElementById('display-mode');
     const droneBtn = document.getElementById('drone-btn');
     const saveBtn = document.getElementById('save-btn');
+    const explorerBtn = document.getElementById('explorer-btn');
     const settingsBtn = document.getElementById('settings-btn');
     const settingsPanel = document.getElementById('settings-panel');
+    const progressionSection = document.getElementById('progression-builder');
 
     // --- Population helpers ---
     function populateDropdowns() {
@@ -145,6 +162,40 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Progression Toggle
+    if (explorerBtn && progressionSection) {
+        explorerBtn.addEventListener('click', () => {
+            const isHidden = progressionSection.style.display === 'none';
+            progressionSection.style.display = isHidden ? 'block' : 'none';
+            explorerBtn.classList.toggle('active', isHidden);
+
+            if (isHidden) {
+                // Scroll to it
+                setTimeout(() => {
+                    progressionSection.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+            }
+        });
+    }
+
+    // Reset Path
+    const resetProgBtn = document.getElementById('reset-progression');
+    if (resetProgBtn) {
+        resetProgBtn.addEventListener('click', () => {
+            // Reset State
+            state.progression = [];
+            state.activeGraphNode = null;
+            state.selectedChordData = null; // Clear selection to reset graph to placeholder
+
+            // Re-render
+            updateApp();
+
+            // Visual feedback
+            resetProgBtn.textContent = 'Reset! 🧹';
+            setTimeout(() => resetProgBtn.textContent = 'Reset Path 🔄', 1000);
+        });
+    }
+
     // Settings UI
     settingsBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -158,5 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Bootstrap ---
+    ui.initControls(MusicTheory.SCALES, MusicTheory.INSTRUMENTS);
     populateDropdowns();
 });
