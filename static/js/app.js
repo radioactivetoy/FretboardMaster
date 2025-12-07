@@ -196,6 +196,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Play Progression
+    const playProgBtn = document.getElementById('play-progression-btn');
+    if (playProgBtn) {
+        playProgBtn.addEventListener('click', () => {
+            if (state.progression.length === 0) return;
+
+            playProgBtn.textContent = 'Playing... 🎵';
+            playProgBtn.disabled = true;
+
+            // Get Context time
+            audioEngine.init();
+            const now = audioEngine.ctx.currentTime;
+            const stepDuration = 1.2; // Seconds per chord
+
+            let playedCount = 0;
+            state.progression.forEach((chord, i) => {
+                // Skip nodes without notes (e.g. key changes)
+                if (!chord.notes || !Array.isArray(chord.notes)) return;
+
+                const freqs = chord.notes.map(noteName => {
+                    return audioEngine.getRootFrequency(noteName, MusicTheory.CHROMATIC_SCALE);
+                });
+
+                const startTime = now + (playedCount * stepDuration);
+                audioEngine.playChord(freqs, startTime, stepDuration * 0.85);
+                playedCount++;
+            });
+
+            // Reset Button Text
+            setTimeout(() => {
+                playProgBtn.textContent = 'Play ▶️';
+                playProgBtn.disabled = false;
+            }, playedCount * stepDuration * 1000);
+        });
+    }
+
     // Settings UI
     settingsBtn.addEventListener('click', (e) => {
         e.stopPropagation();

@@ -23,14 +23,14 @@ class AudioEngine {
         return 440 * Math.pow(2, (midi - 69) / 12);
     }
 
-    playTone(freq) {
+    playTone(freq, time = null, duration = 2.0) {
         this.init();
-        const t = this.ctx.currentTime;
+        const t = time !== null ? time : this.ctx.currentTime;
 
         // Master Gain
         const masterGain = this.ctx.createGain();
         masterGain.connect(this.ctx.destination);
-        masterGain.gain.setValueAtTime(0.5, t);
+        masterGain.gain.setValueAtTime(0.5 / 6, t); // Reduce volume for polyphony potential
 
         // --- 1. String Body ---
         const osc1 = this.ctx.createOscillator();
@@ -52,7 +52,7 @@ class AudioEngine {
 
         stringGain.gain.setValueAtTime(0, t);
         stringGain.gain.linearRampToValueAtTime(1, t + 0.02);
-        stringGain.gain.exponentialRampToValueAtTime(0.01, t + 2.0);
+        stringGain.gain.exponentialRampToValueAtTime(0.01, t + duration);
 
         osc1.connect(filter);
         osc2.connect(filter);
@@ -60,9 +60,9 @@ class AudioEngine {
         stringGain.connect(masterGain);
 
         osc1.start(t);
-        osc1.stop(t + 2.0);
+        osc1.stop(t + duration);
         osc2.start(t);
-        osc2.stop(t + 2.0);
+        osc2.stop(t + duration);
 
         // --- 2. Pick Attack ---
         const noiseBufferSize = this.ctx.sampleRate * 0.05;
@@ -80,7 +80,7 @@ class AudioEngine {
         noiseFilter.type = 'highpass';
         noiseFilter.frequency.value = 1000;
 
-        noiseGain.gain.setValueAtTime(0.5, t);
+        noiseGain.gain.setValueAtTime(0.3, t); // Reduced generic noise
         noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.03);
 
         noise.connect(noiseFilter);
@@ -88,6 +88,17 @@ class AudioEngine {
         noiseGain.connect(masterGain);
 
         noise.start(t);
+    }
+
+    playChord(frequencies, time = null, duration = 2.0) {
+        this.init();
+        const t = time !== null ? time : this.ctx.currentTime;
+        // Stagger strumming slightly?
+        let offset = 0;
+        frequencies.forEach((f, i) => {
+            this.playTone(f, t + offset, duration);
+            offset += 0.03; // 30ms strum delay
+        });
     }
 
     toggleDrone(rootName, chromaticScale) {

@@ -311,12 +311,53 @@ class UI {
                     metaHtml = `<div class="t-meta" title="${chord.transitionLabel}">${chord.transitionIcon}</div>`;
                 }
 
+                item.style.position = 'relative'; // Ensure positioning context
                 item.innerHTML = `
                     ${metaHtml}
                     <div class="t-roman">${chord.roman}</div>
                     <div class="t-name">${chord.name}</div>
                     <div class="t-func">${chord.function || ''}</div>
                 `;
+
+                // Add Delete Btn
+                const delBtn = document.createElement('div');
+                delBtn.className = 't-delete';
+                delBtn.textContent = '❌';
+                delBtn.title = 'Delete from here';
+                delBtn.style.cssText = "position: absolute; top: -5px; right: -5px; cursor: pointer; font-size: 0.8em; background: rgba(0,0,0,0.5); border-radius: 50%; padding: 2px;";
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+
+                    // Restoration Logic
+                    const remaining = this.state.progression.slice(0, idx);
+                    let targetKey = null;
+
+                    // Search backwards for the last defined Tonality
+                    for (let k = remaining.length - 1; k >= 0; k--) {
+                        const node = remaining[k];
+                        if (node.keyContext) {
+                            targetKey = node.keyContext;
+                            break;
+                        }
+                    }
+
+                    // If we found a target key, restore it
+                    if (targetKey) {
+                        const rootSelect = document.getElementById('root-select');
+                        const scaleSelect = document.getElementById('scale-select');
+                        if (rootSelect && scaleSelect) {
+                            // Check if actual change needed
+                            if (rootSelect.value !== targetKey.root || scaleSelect.value !== targetKey.type) {
+                                rootSelect.value = targetKey.root;
+                                scaleSelect.value = targetKey.type;
+                                rootSelect.dispatchEvent(new Event('change'));
+                            }
+                        }
+                    }
+
+                    this.state.truncateProgression(idx);
+                };
+                item.appendChild(delBtn);
 
                 this.progressionTimeline.appendChild(item);
 
@@ -404,7 +445,8 @@ class UI {
                         function: 'Modulation',
                         transitionType: 'modulation',
                         transitionIcon: '🚀',
-                        transitionLabel: `Modulating to ${sugg.newKey.root}`
+                        transitionLabel: `Modulating to ${sugg.newKey.root}`,
+                        keyContext: sugg.newKey // Store for restore
                     };
                     this.state.addToProgression(modNode);
 
@@ -414,12 +456,10 @@ class UI {
 
                     if (rootSelect && scaleSelect) {
                         rootSelect.value = sugg.newKey.root;
-                        // Ensure case matches option values (usually Title Case e.g. "Major", "Minor")
                         scaleSelect.value = sugg.newKey.type;
 
                         // Trigger update
                         rootSelect.dispatchEvent(new Event('change'));
-                        // Reset graph after update is handled by app? App calls render, which resets graph.
                     }
                 });
 
@@ -474,7 +514,12 @@ class UI {
 
                 if (this.state.progression.length === 0) {
                     // Add the seed node as 'start'
-                    const seed = { ...activeNode, transitionType: 'start', transitionIcon: '🏁' };
+                    const seed = {
+                        ...activeNode,
+                        transitionType: 'start',
+                        transitionIcon: '🏁',
+                        keyContext: { root: this.state.settings.root, type: this.state.settings.scaleType } // Capture Initial Key
+                    };
                     this.state.addToProgression(seed);
                 }
 
