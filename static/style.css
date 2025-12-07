@@ -1,13 +1,15 @@
 :root {
     --bg-color: #0f1115;
-    --card-bg: #1a1d24;
+    /* Increased transparency for more visible glass effect */
+    --card-bg: rgba(26, 29, 36, 0.6);
+    --card-border: rgba(255, 255, 255, 0.1);
     --text-primary: #ffffff;
     --text-secondary: #a0a0a0;
     --accent-color: #00d4ff;
     --accent-glow: rgba(0, 212, 255, 0.3);
-    --fretboard-wood: #2a2a2a;
-    --string-color: #555;
-    --fret-color: #444;
+    --fretboard-wood: #2a221b;
+    --string-color: #888;
+    --fret-color: #b0b0b0;
     --note-bg: #fff;
     --note-text: #000;
 }
@@ -24,14 +26,13 @@ body {
 
 .container {
     width: 95%;
-    max-width: 1800px;
-    /* Increased from 1200px to fit full fretboard */
-    padding: 2rem;
+    max-width: 100%;
+    padding: 1rem;
     text-align: center;
-    /* Restore text align */
     position: relative;
     margin-bottom: 0.5rem;
     font-weight: 600;
+    overflow-x: hidden;
 }
 
 .header-tools {
@@ -49,7 +50,9 @@ body {
     padding: 0.6rem 1.2rem;
     background-color: var(--card-bg);
     color: var(--text-primary);
-    border: 1px solid #333;
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border-radius: 8px;
     font-size: 0.9rem;
     font-family: inherit;
@@ -64,6 +67,7 @@ body {
     border-color: var(--accent-color);
     color: var(--accent-color);
     box-shadow: 0 0 10px rgba(0, 212, 255, 0.1);
+    background-color: rgba(0, 212, 255, 0.1);
 }
 
 .tool-btn.active {
@@ -78,21 +82,23 @@ body {
     top: 120%;
     right: 0;
     background-color: var(--card-bg);
-    border: 1px solid #333;
-    border-radius: 8px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
     padding: 1.5rem;
     min-width: 250px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
     text-align: left;
     z-index: 101;
     opacity: 1;
     transform: translateY(0);
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .settings-panel.hidden {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-10px) scale(0.95);
     pointer-events: none;
     visibility: hidden;
 }
@@ -100,7 +106,7 @@ body {
 .settings-panel h3 {
     margin-top: 0;
     font-size: 1rem;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--card-border);
     padding-bottom: 0.5rem;
     margin-bottom: 1rem;
     color: var(--text-secondary);
@@ -115,8 +121,9 @@ header p {
 .controls {
     display: flex;
     justify-content: center;
-    gap: 2rem;
+    gap: 1.5rem;
     margin: 3rem 0;
+    flex-wrap: wrap;
 }
 
 .control-group {
@@ -134,7 +141,9 @@ label {
 select {
     background-color: var(--card-bg);
     color: var(--text-primary);
-    border: 1px solid #333;
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
     padding: 0.8rem 1.5rem;
     border-radius: 8px;
     font-size: 1rem;
@@ -162,9 +171,7 @@ select:focus {
     transition: all 0.3s ease;
     box-shadow: none;
     height: 100%;
-    /* Match select height if possible, or align items */
     display: flex;
-    /* Centering */
     align-items: center;
     justify-content: center;
     min-width: 140px;
@@ -191,19 +198,27 @@ select:focus {
 }
 
 #fretboard {
+    /* Wood Grain Texture */
     background-color: var(--fretboard-wood);
+    background-image:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(rgba(0, 0, 0, 0.2) 2px, transparent 2px),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.02), transparent 60%);
+    background-size: 40px 100%, 100% 8px, 100% 100%;
     margin: 0 auto;
-    /* Safely centers content when it fits, aligns start when it overflows */
     padding: 40px 60px;
-    /* Nut padding */
     border-radius: 12px;
     position: relative;
     display: inline-block;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    box-shadow:
+        0 20px 50px rgba(0, 0, 0, 0.6),
+        inset 0 0 100px rgba(0, 0, 0, 0.5);
+    /* Inner shadow for depth */
     min-width: 1000px;
     width: max-content;
-    /* Ensure background covers full scrolling width */
     flex-shrink: 0;
+    border: 4px solid #1a1510;
+    /* Binding */
 }
 
 .string {
@@ -220,7 +235,10 @@ select:focus {
     right: 0;
     top: 50%;
     height: 2px;
-    background-color: var(--string-color);
+    /* Metallic effect using gradient */
+    background: linear-gradient(to bottom, #999 0%, #eee 40%, #555 100%);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    /* Shadow below string */
     z-index: 1;
 }
 
@@ -381,24 +399,6 @@ select:focus {
     border-radius: 20px;
     border: 2px solid #333;
     font-weight: 600;
-    color: var(--text-primary);
-    transition: all 0.3s ease;
-}
-
-/* Legend Styles */
-.legend-container {
-    background-color: var(--card-bg);
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 2rem;
-    display: inline-block;
-    border: 1px solid #333;
-}
-
-.legend-container h3 {
-    margin: 0 0 1rem 0;
-    font-size: 1rem;
-    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -638,118 +638,116 @@ select:focus {
     justify-content: center;
 }
 
-/* Target ID + Class to override #fretboard styles */
 #fretboard.piano-board {
     display: flex;
     flex-wrap: nowrap;
-    /* CRITICAL: Prevent wrapping */
     align-items: flex-start;
-    /* Align keys to top */
     position: relative;
     user-select: none;
-    background: #111;
-    padding: 10px;
-    /* Reduced padding for piano */
+    /* Piano Case Finish */
+    background: linear-gradient(180deg, #111 0%, #222 10%, #111 100%);
+    padding: 15px;
+    /* Slightly more frame */
     border-radius: 8px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid #000;
     min-width: unset;
-    /* Allow it to shrink to key content */
     width: max-content;
-    /* Ensure it grows for 88 keys */
     height: auto;
-    /* Allow height to fit keys */
 }
 
 .piano-key {
     position: relative;
     display: flex;
     align-items: flex-end;
-    /* Align label to bottom */
     justify-content: center;
     border-radius: 0 0 4px 4px;
-    transition: background 0.1s;
+    transition: transform 0.05s ease, background 0.1s;
     cursor: pointer;
+    transform-style: preserve-3d;
+    /* Enable 3D transitions */
 }
 
 .white-key {
     width: 50px;
     height: 200px;
-    background: white;
-    border: 1px solid #ccc;
+    background: linear-gradient(to bottom, #fff 0%, #eee 90%, #ddd 100%);
+    border: 1px solid #bbb;
+    border-top: none;
+    /* Seamless top */
     z-index: 1;
     color: #333;
     font-size: 0.8rem;
-    padding-bottom: 10px;
+    padding-bottom: 15px;
     font-weight: bold;
+    box-shadow:
+        inset 0 -5px 10px rgba(0, 0, 0, 0.1),
+        /* Curvature */
+        2px 0 5px rgba(0, 0, 0, 0.1);
+    /* Side shadow */
 }
 
 .white-key:hover {
-    background: #f0f0f0;
+    background: linear-gradient(to bottom, #fff 0%, #f4f4f4 100%);
 }
 
 .white-key.active {
     background: #e0e0e0;
-    transform: translateY(2px);
+    transform: perspective(600px) rotateX(-2deg) translateY(2px);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .black-key {
-    width: 30px;
-    height: 120px;
-    background: black;
+    width: 32px;
+    /* Slightly wider */
+    height: 125px;
+    /* 3D Black Key Look */
+    background: linear-gradient(to right, #222 0%, #111 30%, #444 85%, #222 100%);
+    background-color: #111;
     z-index: 2;
-    margin-left: -15px;
-    margin-right: -15px;
-    /* Overlap */
+    margin-left: -16px;
+    margin-right: -16px;
+    border-radius: 0 0 3px 3px;
     color: white;
     font-size: 0.7rem;
-    padding-bottom: 5px;
-    /* Box shadow for 3D effect */
-    box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.3);
+    padding-bottom: 8px;
+    /* Deep 3D Shadow */
+    box-shadow:
+        3px 5px 5px rgba(0, 0, 0, 0.5),
+        inset 1px 0 2px rgba(255, 255, 255, 0.2);
 }
 
 .black-key:hover {
-    background: #333;
+    background: linear-gradient(to right, #333 0%, #222 30%, #555 85%, #333 100%);
 }
 
 .black-key.active {
-    background: #222;
+    transform: perspective(600px) rotateX(-3deg) translateY(3px);
+    box-shadow: 1px 2px 3px rgba(0, 0, 0, 0.5);
 }
 
-/* Spacer for B-C and E-F where there is no black key, 
-   to prevent negative margin overlap issues if handled sequentially? 
-   Actually with the negative margin logic:
-   W B W B W -> 
-   [W] [B marg:-15] [W] ...
-   If the DOM order is linear (MIDI order), 
-   C (W), C# (B), D (W) ...
-   This works perfectly.
-   But for E F (W W), we just strictly render W W. No B in between.
-   So no special spacer needed if logic inserts B only when needed.
-*/
+/* Animations */
+@keyframes popIn {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+    }
 
-/* Highlight Colors for Piano */
-/* We recycle the .int-X classes but applied to background/color of keys? */
-.piano-key.highlight-chord {
-    /* Override background relative to interval */
+    60% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
 }
 
-/* Helper to map interval colors to key backgrounds */
-.white-key.int-R {
-    background: #00d4ff !important;
-    color: white !important;
+.note-marker {
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-.black-key.int-R {
-    background: #00a4ce !important;
-    box-shadow: 0 0 10px #00d4ff;
-}
-
-/* For generic interval coloring, we might need more specifity or inline styles.
-   Let's use the same border-color variables but apply to bg.
-   Or just style markers ON the keys?
-   Let's put .note-marker badges INSIDE the keys.
-*/
-
+/* Key Markers (On Piano) need specific animation origin or reset */
 .key-marker {
     width: 28px;
     height: 28px;
@@ -758,18 +756,170 @@ select:focus {
     justify-content: center;
     align-items: center;
     font-size: 0.8rem;
-    margin-bottom: 10px;
-    /* For white keys */
+    margin-bottom: 20px;
+    /* Higher up */
     z-index: 5;
     background-color: var(--card-bg);
     border: 2px solid #555;
     color: #fff;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    /* Pop Animation */
+    animation: popInKey 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-.black-key .key-marker {
+@keyframes popInKey {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    60% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* --- Diatonic Chords Section --- */
+.diatonic-section {
+    margin-top: 3rem;
+    padding: 2rem;
+    background-color: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
+}
+
+.section-title {
+    margin-top: 0;
+    margin-bottom: 2rem;
+    color: var(--text-secondary);
+    font-weight: 300;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 1.2rem;
+}
+
+.diatonic-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    justify-content: center;
+}
+
+.chord-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 1rem;
+    width: 200px;
+    text-align: left;
+    backdrop-filter: blur(5px);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.chord-card:hover {
+    border-color: var(--accent-color);
+    transform: translateY(-5px);
+}
+
+.chord-header {
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.8rem;
+    font-size: 1.1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.degree-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.chord-detail {
+    margin-bottom: 0.5rem;
+}
+
+.chord-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.4rem;
+    font-size: 0.95rem;
+}
+
+.chord-separator {
+    height: 1px;
+    background-color: var(--card-border);
+    margin: 0.8rem 0;
+}
+
+.chord-notes-mini {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.mini-badge {
     width: 24px;
     height: 24px;
-    font-size: 0.7rem;
-    margin-bottom: 5px;
+    border-radius: 50%;
+    background-color: #222;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.75rem;
+    color: #fff;
+    border: 1px solid #444;
+    /* Fallback */
+}
+
+/* Harmonic Function Labels */
+.chord-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.function-label {
+    font-size: 0.75rem;
+    color: var(--accent-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(0, 212, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    font-weight: 600;
+}
+
+.chord-detail {
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    /* Prevent layout jump */
+}
+
+.chord-detail:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.chord-detail.selected-detail {
+    background-color: rgba(0, 212, 255, 0.15);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.1);
+}
+
+.chord-header {
+    /* Header is informational now, not the clickable trigger */
+    cursor: default;
 }

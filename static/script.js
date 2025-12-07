@@ -4,14 +4,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const tuningSelect = document.getElementById('tuning-select');
     const scaleSelect = document.getElementById('scale-select');
     const displayModeSelect = document.getElementById('display-mode');
-    const chordSelect = document.getElementById('chord-select');
-    const complexitySelect = document.getElementById('chord-complexity');
+    // const chordSelect = document.getElementById('chord-select'); // Removed
+    // const complexitySelect = document.getElementById('chord-complexity'); // Removed
     const fretboard = document.getElementById('fretboard');
     const scaleNameElement = document.getElementById('current-scale-name');
     const chordNameElement = document.getElementById('selected-chord-name');
     const scaleNotesElement = document.getElementById('scale-notes');
+    const diatonicGrid = document.querySelector('.diatonic-grid');
+
+    // Save Image Feature
+    const saveBtn = document.getElementById('save-btn');
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsPanel = document.getElementById('settings-panel');
 
     const chromaticScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+    // State for interactive selection
+    let selectedChordData = null; // { name, notes: [] } or null
 
     // Populate Root Selector
     chromaticScale.forEach(note => {
@@ -54,8 +63,11 @@ document.addEventListener('DOMContentLoaded', () => {
     async function updateScale() {
         const root = rootSelect.value;
         const type = scaleSelect.value;
-        const complexity = complexitySelect ? complexitySelect.value : 'triad';
+        const complexity = 'triad'; // Default, calculated independently in render logic
         const tuning = tuningSelect ? tuningSelect.value : 'Standard';
+
+        // Reset Selection on Scale Change
+        selectedChordData = null;
 
         try {
             // Local Client-Side Calculation
@@ -83,38 +95,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 fretboard.classList.add('inst-guitar');
             }
 
-            // Populate Chords Selector
-            populateChords(data.chords);
-
             renderFretboard(data);
             updateInfo(data);
         } catch (error) {
             console.error('Error calculating scale:', error);
-        }
-    }
-
-    function populateChords(chords) {
-        // save current selection if possible, otherwise reset
-        const currentSelection = chordSelect.value;
-
-        // Clear existing options except first
-        while (chordSelect.options.length > 1) {
-            chordSelect.remove(1);
-        }
-
-        chords.forEach(chord => {
-            const option = document.createElement('option');
-            option.value = chord.notes.join(','); // Store notes like "C,E,G"
-            option.textContent = `${chord.name} (Degree ${chord.degree})`;
-            if (currentSelection === option.value) {
-                option.selected = true;
-            }
-            chordSelect.appendChild(option);
-        });
-
-        // If we changed scale, chord options changed, reset to none usually
-        if (!Array.from(chordSelect.options).some(o => o.value === currentSelection)) {
-            chordSelect.value = 'none';
+            // alert(`Error: ${error.message}`);
         }
     }
 
@@ -305,8 +290,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const mode = displayModeSelect ? displayModeSelect.value : 'notes';
-        const chordSelection = chordSelect.value; // "none" or "Note1,Note2,Note3"
-        const chordNotes = chordSelection === 'none' ? null : chordSelection.split(',');
+
+        let chordNotes = null;
+        if (selectedChordData) {
+            chordNotes = selectedChordData.notes; // Array of notes
+        }
 
         // Configuration
         const numFrets = 24;
@@ -416,8 +404,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const range = MusicTheory.getPianoRange(rangeType);
         const mode = displayModeSelect ? displayModeSelect.value : 'notes';
-        const chordSelection = chordSelect.value;
-        const chordNotes = chordSelection === 'none' ? null : chordSelection.split(',');
+
+        let chordNotes = null;
+        if (selectedChordData) {
+            chordNotes = selectedChordData.notes;
+        }
 
         // Map Scale Data for easy lookup
         // node name -> { degree, interval }
@@ -444,14 +435,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (chordNotes && chordNotes.includes(noteName)) {
                     isChordTone = true;
                 }
-
-                // If we are in "Chord Mode" (chordNotes not null), we typically ONLY highlight chord tones?
-                // Or we highlight scale tones dimly and chord tones brightly?
-                // Visualizer logic in Fretboard was: Badges show for all scale notes.
-                // Replicate Fretboard Logic:
-                // If Chord Selected:
-                //   - Highlight Chord Tones (Visible)
-                //   - Scale Tones (Normal/Dimmed implicitly by lack of highlight class)
 
                 // Create Marker
                 const marker = document.createElement('div');
@@ -533,14 +516,14 @@ document.addEventListener('DOMContentLoaded', () => {
         scaleNameElement.textContent = `${data.root} ${data.type}`;
         scaleNotesElement.innerHTML = '';
 
-        const chordSelection = chordSelect.value;
-        const chordNotes = chordSelection === 'none' ? null : chordSelection.split(',');
-
-        // Update Selected Chord Text
-        if (chordNotes && chordSelect.selectedIndex > -1) {
-            chordNameElement.textContent = `Selected Chord: ${chordSelect.options[chordSelect.selectedIndex].text}`;
+        let chordNotes = null;
+        if (selectedChordData) {
+            chordNotes = selectedChordData.notes;
+            chordNameElement.textContent = `Selected Chord: ${selectedChordData.name}`;
+            chordNameElement.style.opacity = '1';
         } else {
-            chordNameElement.textContent = '';
+            chordNameElement.textContent = 'Select a chord below to highlight';
+            chordNameElement.style.opacity = '0.6';
         }
 
         data.scale_data.forEach((item, index) => {
@@ -570,6 +553,116 @@ document.addEventListener('DOMContentLoaded', () => {
 
             scaleNotesElement.appendChild(badge);
         });
+
+        // Call Diatonic Chords Render
+        renderDiatonicChords(data);
+    }
+
+    function renderDiatonicChords(data) {
+        if (!diatonicGrid) return;
+        diatonicGrid.innerHTML = '';
+
+        // Fetch Triads and 7ths
+        const triads = MusicTheory.getDiatonicChords(data.scale_data, 'triad', data.type);
+        const sevenths = MusicTheory.getDiatonicChords(data.scale_data, 'seventh', data.type);
+
+        triads.forEach((triad, index) => {
+            const seventh = sevenths[index];
+
+            const card = document.createElement('div');
+            card.className = 'chord-card';
+            // Card itself is not the clickable toggle anymore, but container
+            card.style.cursor = 'default';
+
+            // Header (Shared, informational)
+            const header = document.createElement('div');
+            header.className = 'chord-header';
+            header.innerHTML = `
+                <div class="chord-title-row">
+                    <span class="degree-label">${triad.roman}</span> 
+                    <strong>${triad.root}</strong>
+                </div>
+                <div class="function-label">${triad.function}</div>
+            `;
+            card.appendChild(header);
+
+            // --- TRIAD ZONE ---
+            const triadInfo = document.createElement('div');
+            triadInfo.className = 'chord-detail';
+
+            // Check selection
+            if (selectedChordData && selectedChordData.name === triad.name) {
+                triadInfo.classList.add('selected-detail');
+            }
+
+            triadInfo.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (selectedChordData && selectedChordData.name === triad.name) {
+                    selectedChordData = null; // Toggle off
+                } else {
+                    selectedChordData = triad; // Select Triad
+                }
+                renderFretboard(currentScaleData);
+                updateInfo(currentScaleData);
+            });
+
+            triadInfo.innerHTML = `<div class="chord-name">${triad.name}</div>`;
+
+            const triadNotes = document.createElement('div');
+            triadNotes.className = 'chord-notes-mini';
+            triad.notes.forEach(note => {
+                const scaleItem = data.scale_data.find(s => s.note === note);
+                const intervalClass = scaleItem ? getIntervalClass(scaleItem.interval) : '';
+                const dot = document.createElement('span');
+                dot.className = `mini-badge ${intervalClass}`;
+                dot.textContent = note;
+                triadNotes.appendChild(dot);
+            });
+            triadInfo.appendChild(triadNotes);
+            card.appendChild(triadInfo);
+
+            // Separator
+            const separator = document.createElement('div');
+            separator.className = 'chord-separator';
+            card.appendChild(separator);
+
+            // --- SEVENTH ZONE ---
+            const seventhInfo = document.createElement('div');
+            seventhInfo.className = 'chord-detail';
+
+            // Check selection
+            if (selectedChordData && selectedChordData.name === seventh.name) {
+                seventhInfo.classList.add('selected-detail');
+            }
+
+            seventhInfo.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (selectedChordData && selectedChordData.name === seventh.name) {
+                    selectedChordData = null; // Toggle off
+                } else {
+                    selectedChordData = seventh; // Select Seventh
+                }
+                renderFretboard(currentScaleData);
+                updateInfo(currentScaleData);
+            });
+
+            seventhInfo.innerHTML = `<div class="chord-name">${seventh.name}</div>`;
+
+            const seventhNotes = document.createElement('div');
+            seventhNotes.className = 'chord-notes-mini';
+            seventh.notes.forEach(note => {
+                const scaleItem = data.scale_data.find(s => s.note === note);
+                const intervalClass = scaleItem ? getIntervalClass(scaleItem.interval) : '';
+                const dot = document.createElement('span');
+                dot.className = `mini-badge ${intervalClass}`;
+                dot.textContent = note;
+                seventhNotes.appendChild(dot);
+            });
+            seventhInfo.appendChild(seventhNotes);
+            card.appendChild(seventhInfo);
+
+            diatonicGrid.appendChild(card);
+        });
     }
 
     // Event Listeners
@@ -581,23 +674,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (displayModeSelect) {
         displayModeSelect.addEventListener('change', () => renderFretboard(currentScaleData));
     }
-    if (chordSelect) {
-        chordSelect.addEventListener('change', () => {
-            renderFretboard(currentScaleData);
-            updateInfo(currentScaleData);
-        });
-    }
-    if (complexitySelect) {
-        complexitySelect.addEventListener('change', updateScale);
-    }
+
+    // Removed Chord Select Listener
+
+
     if (tuningSelect) {
         tuningSelect.addEventListener('change', updateScale);
     }
-
-    // Save Image Feature
-    const saveBtn = document.getElementById('save-btn');
-    const settingsBtn = document.getElementById('settings-btn');
-    const settingsPanel = document.getElementById('settings-panel');
 
     // Toggle Settings Panel
     settingsBtn.addEventListener('click', (e) => {
@@ -611,19 +694,16 @@ document.addEventListener('DOMContentLoaded', () => {
             settingsPanel.classList.add('hidden');
         }
     });
+
     if (saveBtn) {
         saveBtn.addEventListener('click', () => {
-            // We capture the fretboard container to get the whole scrollable area if we want, 
-            // but usually we want the visible part or the specific #fretboard element.
-            // Let's capture #fretboard to get the wood background and everything.
-
             // Visual feedback
             const originalText = saveBtn.textContent;
             saveBtn.textContent = 'Capturing...';
 
             html2canvas(document.querySelector("#fretboard"), {
-                backgroundColor: null, // Keep transparency if any (though we have wood bg)
-                scale: 2 // High res
+                backgroundColor: null,
+                scale: 2
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `Fretboard-${scaleNameElement.textContent.replace(/\s+/g, '-')}.png`;
