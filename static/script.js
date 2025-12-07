@@ -77,6 +77,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 fretboard.classList.add('inst-uke');
             } else if (instrument.toLowerCase().includes('banjo')) {
                 fretboard.classList.add('inst-banjo');
+            } else if (instrument.toLowerCase().includes('violin')) {
+                fretboard.classList.add('inst-violin');
             } else {
                 fretboard.classList.add('inst-guitar');
             }
@@ -293,6 +295,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!data) return;
         fretboard.innerHTML = '';
 
+        // Detect Instrument Type
+        const instrument = instrumentSelect.value;
+        const isPiano = instrument.includes('Piano');
+
+        if (isPiano) {
+            renderPiano(data, instrument, tuningSelect.value);
+            return;
+        }
+
         const mode = displayModeSelect ? displayModeSelect.value : 'notes';
         const chordSelection = chordSelect.value; // "none" or "Note1,Note2,Note3"
         const chordNotes = chordSelection === 'none' ? null : chordSelection.split(',');
@@ -339,14 +350,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     const noteInfo = notesMap[f];
 
                     // Highlight Logic
-                    let isDimmed = false;
                     let isHighlighted = false;
 
                     if (chordNotes) {
                         if (chordNotes.includes(noteInfo.note)) {
                             isHighlighted = true;
                         }
-                        // dimming removed per user request
                     }
 
                     const noteMarker = document.createElement('div');
@@ -362,17 +371,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             noteMarker.classList.add('characteristic');
                         }
                     } else {
-                        // Regular note (no dimming)
-
-                        // Characteristic Note Logic (Only when no chord is selected OR if we want to show them always? 
-                        // Previous logic was: if no chord selected, show characteristic. 
-                        // If chord selected, only show characteristic if it's IN the chord.
-                        // With no dimming, strictly speaking we just fall through here.
-
-                        // Re-evaluating characteristic logic:
-                        // If a chord is selected, should we highlight characteristic intervals on non-chord notes?
-                        // Original logic: "Characteristic Note Logic (Only when no chord is selected)"
-                        // We'll keep that behavior for now to avoid visual clutter.
                         if (!chordNotes && data.characteristic_intervals && data.characteristic_intervals.includes(noteInfo.interval)) {
                             noteMarker.classList.add('characteristic');
                         }
@@ -400,7 +398,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             noteMarker.style.transform = isHighlighted
                                 ? 'translate(-50%, -50%) scale(1.1)'
                                 : 'translate(-50%, -50%) scale(1)';
-                            if (isDimmed) noteMarker.style.transform = 'translate(-50%, -50%) scale(0.9)';
                         }, 100);
                     });
 
@@ -411,6 +408,93 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         addInlays(numFrets, fretWidth);
+    }
+
+    function renderPiano(data, instrument, rangeType) {
+        fretboard.className = 'piano-board'; // Reset to piano styling
+        // Note: we're reusing the #fretboard DIV, so we just change class/content
+
+        const range = MusicTheory.getPianoRange(rangeType);
+        const mode = displayModeSelect ? displayModeSelect.value : 'notes';
+        const chordSelection = chordSelect.value;
+        const chordNotes = chordSelection === 'none' ? null : chordSelection.split(',');
+
+        // Map Scale Data for easy lookup
+        // node name -> { degree, interval }
+        const scaleMap = {};
+        data.scale_data.forEach(item => {
+            scaleMap[item.note] = item;
+        });
+
+        // Loop MIDI Range
+        for (let midi = range.start; midi <= range.end; midi++) {
+            const index = midi % 12; // 0=C, 1=C#, etc
+            const noteName = chromaticScale[index];
+            const isBlack = [1, 3, 6, 8, 10].includes(index); // C#, D#, F#, G#, A#
+
+            const keyDiv = document.createElement('div');
+            keyDiv.className = `piano-key ${isBlack ? 'black-key' : 'white-key'}`;
+
+            // Check if Note is in Scale
+            const scaleInfo = scaleMap[noteName];
+
+            if (scaleInfo) {
+                // Determine if highlighted (Chord vs Scale)
+                let isChordTone = false;
+                if (chordNotes && chordNotes.includes(noteName)) {
+                    isChordTone = true;
+                }
+
+                // If we are in "Chord Mode" (chordNotes not null), we typically ONLY highlight chord tones?
+                // Or we highlight scale tones dimly and chord tones brightly?
+                // Visualizer logic in Fretboard was: Badges show for all scale notes.
+                // Replicate Fretboard Logic:
+                // If Chord Selected:
+                //   - Highlight Chord Tones (Visible)
+                //   - Scale Tones (Normal/Dimmed implicitly by lack of highlight class)
+
+                // Create Marker
+                const marker = document.createElement('div');
+                marker.className = `key-marker ${getIntervalClass(scaleInfo.interval)}`;
+
+                if (isChordTone) {
+                    marker.classList.add('highlight-chord');
+                    // Characteristic check
+                    if (data.characteristic_intervals && data.characteristic_intervals.includes(scaleInfo.interval)) {
+                        marker.classList.add('characteristic');
+                    }
+                } else if (!chordNotes) {
+                    // No chord, normal scale view
+                    // Characteristic check
+                    if (data.characteristic_intervals && data.characteristic_intervals.includes(scaleInfo.interval)) {
+                        marker.classList.add('characteristic');
+                    }
+                } else {
+                    // Chord mode, but this key is just a scale note, not chord tone
+                    // Add 'dimmed' class if we want less visibility?
+                    marker.classList.add('dimmed');
+                }
+
+                // Text
+                marker.textContent = mode === 'intervals' ? scaleInfo.interval : noteName;
+
+                keyDiv.appendChild(marker);
+            }
+
+            // Audio
+            keyDiv.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Calc Freq from MIDI
+                const freq = 440 * Math.pow(2, (midi - 69) / 12);
+                playTone(freq);
+
+                // Visual
+                keyDiv.classList.add('active');
+                setTimeout(() => keyDiv.classList.remove('active'), 200);
+            });
+
+            fretboard.appendChild(keyDiv);
+        }
     }
 
     function addInlays(numFrets, fretWidth) {

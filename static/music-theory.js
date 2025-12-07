@@ -25,7 +25,9 @@ class MusicTheory {
         'Bass 5-String': ['Bass 5 Standard'],
         'Bass 6-String': ['Bass 6 Standard'],
         'Ukulele': ['Ukulele Standard (High G)', 'Ukulele Low G'],
-        'Banjo': ['Banjo Open G']
+        'Banjo': ['Banjo Open G'],
+        'Violin': ['Violin Standard'],
+        'Piano': ['Grand Piano (88 Keys)', 'Studio Piano (61 Keys)', 'Compact (49 Keys)']
     };
 
     static TUNINGS = {
@@ -46,7 +48,12 @@ class MusicTheory {
         'Bass 6 Standard': ['B', 'E', 'A', 'D', 'G', 'C'],
         'Ukulele Standard (High G)': ['G', 'C', 'E', 'A'],
         'Ukulele Low G': ['G', 'C', 'E', 'A'],
-        'Banjo Open G': ['G', 'D', 'G', 'B', 'D']
+        'Banjo Open G': ['G', 'D', 'G', 'B', 'D'],
+        'Violin Standard': ['G', 'D', 'A', 'E'],
+        // Piano Ranges (Placeholders for validation, logic handled in getPianoRange)
+        'Grand Piano (88 Keys)': [],
+        'Studio Piano (61 Keys)': [],
+        'Compact (49 Keys)': []
     };
 
     // ... (omitting unchanged methods for brevity if possible, keeping Context) ...
@@ -288,6 +295,23 @@ class MusicTheory {
             return [30, 35, 40, 45, 50, 55, 59, 64]; // F#1 to E4
         }
 
+        // --- BASS ---
+        if (tuningName === 'Bass Standard') return [28, 33, 38, 43]; // E1 A1 D2 G2
+        if (tuningName === 'Bass Drop D') return [26, 33, 38, 43]; // D1 A1 D2 G2
+        if (tuningName === 'Bass 5 Standard') return [23, 28, 33, 38, 43]; // Low B0
+        if (tuningName === 'Bass 6 Standard') return [23, 28, 33, 38, 43, 48]; // High C3
+
+        // --- UKULELE ---
+        if (tuningName === 'Ukulele Standard (High G)') return [67, 60, 64, 69]; // G4 C4 E4 A4
+        if (tuningName === 'Ukulele Low G') return [55, 60, 64, 69]; // G3 C4 E4 A4
+
+        // --- BANJO ---
+        // Open G: g4 D3 G3 B3 D4
+        if (tuningName === 'Banjo Open G') return [67, 50, 55, 59, 62];
+
+        // --- VIOLIN ---
+        if (tuningName === 'Violin Standard') return [55, 62, 69, 76]; // G3 D4 A4 E5
+
         // Default 6-string logic for variations of standard 6-string
         const stdNotes = ['E', 'A', 'D', 'G', 'B', 'E'];
         const stdMidi = [40, 45, 50, 55, 59, 64];
@@ -296,6 +320,8 @@ class MusicTheory {
         if (tuning.length === 6) {
             for (let i = 0; i < 6; i++) {
                 const targetNote = MusicTheory.normalizeNote(tuning[i]);
+                // ... relative logic ...
+                // Re-implementing logic here since we are replacing the block
                 const refNote = stdNotes[i];
                 const refMidi = stdMidi[i];
 
@@ -312,9 +338,20 @@ class MusicTheory {
             return midiValues;
         }
 
-        // Fallback for unknown configurations: return straight 440s (or zeros) to avoid crash?
-        // Or throw error.
         return stdMidi;
+    }
+
+    static getPianoRange(type) {
+        // MIDI Numbers: C4 = 60
+        // 88 Keys: A0 (21) to C8 (108)
+        // 61 Keys: C2 (36) to C7 (96)
+        // 49 Keys: C3 (48) to C7 (96)
+
+        if (type === 'Grand Piano (88 Keys)') return { start: 21, end: 108 };
+        if (type === 'Studio Piano (61 Keys)') return { start: 36, end: 96 };
+        if (type === 'Compact (49 Keys)') return { start: 48, end: 96 };
+
+        return { start: 36, end: 96 }; // Default 61
     }
 
     static getCharacteristicIntervals(scaleType) {
