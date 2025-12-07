@@ -497,11 +497,14 @@ class MusicTheory {
             else if (currentDegree === 3) { // iii
                 suggestions.push({ degree: 6, type: 'resolve', label: 'Circle (vi)', function: 'Sub-Mediant' });
                 suggestions.push({ degree: 4, type: 'subdominant', label: 'Deceptive (IV)', function: 'Subdominant' });
+                suggestions.push({ degree: 5, type: 'tension', label: 'To Dominant (V)', function: 'Dominant' });
             }
             else if (currentDegree === 4) { // IV
                 suggestions.push({ degree: 5, type: 'tension', label: 'To Dominant (V)', function: 'Dominant' });
                 suggestions.push({ degree: 1, type: 'resolve', label: 'Plagal (I)', function: 'Tonic' });
                 suggestions.push({ degree: 2, type: 'subdominant', label: 'Supertonic (ii)', function: 'Pre-Dom' });
+                suggestions.push({ degree: 6, type: 'relative', label: 'To Relative (vi)', function: 'Sub-Mediant' });
+                suggestions.push({ degree: 3, type: 'neutral', label: 'Step Down (iii)', function: 'Mediant' });
             }
             else if (currentDegree === 5) { // V
                 suggestions.push({ degree: 1, type: 'resolve', label: 'Perfect (I)', function: 'Tonic' });
@@ -512,6 +515,8 @@ class MusicTheory {
                 suggestions.push({ degree: 2, type: 'tension', label: 'Circle (ii)', function: 'Pre-Dom' });
                 suggestions.push({ degree: 4, type: 'subdominant', label: 'Subdominant (IV)', function: 'Subdominant' });
                 suggestions.push({ degree: 3, type: 'neutral', label: 'Mediant (iii)', function: 'Mediant' });
+                suggestions.push({ degree: 5, type: 'tension', label: 'To Dominant (V)', function: 'Dominant' });
+                suggestions.push({ degree: 1, type: 'resolve', label: 'To Tonic (I)', function: 'Tonic' });
             }
             else if (currentDegree === 7) { // vii°
                 suggestions.push({ degree: 1, type: 'resolve', label: 'Resolve (I)', function: 'Tonic' });

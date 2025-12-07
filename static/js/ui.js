@@ -158,29 +158,36 @@ class UI {
                 // Check if in scale (handle enharmonics)
                 const scaleItem = data.scale_data.find(item => MusicTheory.normalizeNote(item.note) === MusicTheory.normalizeNote(noteName));
 
-                if (scaleItem) {
-                    // Check if highlighted (chord)
-                    const chordNotes = this.state.selectedChordData ? this.state.selectedChordData.notes : null;
-                    let isHighlighted = false;
-                    if (chordNotes) {
-                        isHighlighted = chordNotes.some(cn => MusicTheory.normalizeNote(cn) === MusicTheory.normalizeNote(noteName));
-                    }
+                // Check if highlighted (chord)
+                const chordNotes = this.state.selectedChordData ? this.state.selectedChordData.notes : null;
+                let isHighlighted = false;
+                if (chordNotes) {
+                    isHighlighted = chordNotes.some(cn => MusicTheory.normalizeNote(cn) === MusicTheory.normalizeNote(noteName));
+                }
 
+                if (scaleItem || isHighlighted) {
                     const noteMarker = document.createElement('div');
-                    noteMarker.className = `note-marker ${this.getIntervalClass(scaleItem.interval)}`;
+                    // Use scale interval or default to 'chromatic'
+                    const intervalClass = scaleItem ? this.getIntervalClass(scaleItem.interval) : 'chromatic';
+                    noteMarker.className = `note-marker ${intervalClass}`;
 
                     if (isHighlighted) {
                         noteMarker.classList.add('highlight-chord');
                         noteMarker.style.zIndex = '10';
                         noteMarker.style.transform = 'translate(-50%, -50%) scale(1.1)';
-                        if (data.characteristic_intervals && data.characteristic_intervals.includes(scaleItem.interval)) {
+                        // Handle non-diatonic highlight specifically
+                        if (!scaleItem) {
+                            noteMarker.style.backgroundColor = '#ff0055'; // Distinct color for chromatic tones
+                            noteMarker.style.borderColor = '#fff';
+                        }
+                        if (scaleItem && data.characteristic_intervals && data.characteristic_intervals.includes(scaleItem.interval)) {
                             noteMarker.classList.add('characteristic');
                         }
                     } else if (!chordNotes) {
                         if (this.state.selectedChordData) {
                             noteMarker.classList.add('dimmed');
                         }
-                        if (!this.state.selectedChordData && data.characteristic_intervals && data.characteristic_intervals.includes(scaleItem.interval)) {
+                        if (!this.state.selectedChordData && scaleItem && data.characteristic_intervals && data.characteristic_intervals.includes(scaleItem.interval)) {
                             noteMarker.classList.add('characteristic');
                         }
                     } else {
@@ -188,7 +195,11 @@ class UI {
                     }
 
                     const mode = this.displayModeSelect ? this.displayModeSelect.value : 'notes';
-                    noteMarker.textContent = mode === 'intervals' ? scaleItem.interval : scaleItem.note;
+                    if (scaleItem) {
+                        noteMarker.textContent = mode === 'intervals' ? scaleItem.interval : scaleItem.note;
+                    } else {
+                        noteMarker.textContent = noteName; // Chromatic notes always show name
+                    }
 
                     // Position (Positive Coordinates)
                     noteMarker.style.left = `${startX + (f * 60) - 30}px`;
@@ -353,6 +364,20 @@ class UI {
             this.state.progression.forEach((chord, idx) => {
                 const item = document.createElement('div');
                 item.className = 'timeline-item';
+
+                // Highlight active selection
+                if (this.state.selectedChordData === chord) {
+                    item.classList.add('selected');
+                    item.style.borderColor = '#00d4ff';
+                    item.style.boxShadow = '0 0 10px rgba(0, 212, 255, 0.4)';
+                }
+
+                // Click to Select (Visualize on Fretboard)
+                item.onclick = (e) => {
+                    this.state.selectedChordData = chord;
+                    // Trigger global update to refresh fretboard
+                    if (this.state.updateCallback) this.state.updateCallback();
+                };
 
                 // Transition Info (Badge)
                 let metaHtml = '';
