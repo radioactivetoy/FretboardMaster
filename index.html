@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guitar Scale Visualizer</title>
+    <link rel="stylesheet" href="static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <div class="header-tools">
+            <button id="drone-btn" class="tool-btn">Drone 🔇</button>
+            <button id="settings-btn" class="tool-btn">Settings ⚙️</button>
+            <button id="save-btn" class="tool-btn">Save Image 📸</button>
+
+            <div id="settings-panel" class="settings-panel hidden">
+                <h3>Configuration</h3>
+                <div class="control-group">
+                    <label for="tuning-select">Tuning</label>
+                    <select id="tuning-select">
+                        <option value="Standard">Standard (E A D G B E)</option>
+                        <option value="Drop D">Drop D (D A D G B E)</option>
+                        <option value="Double Drop D">Double Drop D (D A D G B D)</option>
+                        <option value="DADGAD">DADGAD</option>
+                        <option value="Open D">Open D (D A D F# A D)</option>
+                        <option value="Open G">Open G (D G D G B D)</option>
+                        <option value="Open E">Open E (E B E G# B E)</option>
+                        <option value="Eb Standard">Eb Standard (Half-Step Down)</option>
+                        <option value="D Standard">D Standard (Whole-Step Down)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <header>
+            <h1>Fretboard <span class="highlight">Master</span></h1>
+            <p>Interactive Scale Visualization</p>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="root-select">Root Note</label>
+                <select id="root-select">
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
+
+
+
+            <div class="control-group">
+                <label for="scale-select">Scale Type</label>
+                <select id="scale-select">
+                    <option value="Major">Major (Ionian)</option>
+                    <option value="Minor">Minor (Aeolian)</option>
+                    <option value="Dorian">Dorian</option>
+                    <option value="Phrygian">Phrygian</option>
+                    <option value="Lydian">Lydian</option>
+                    <option value="Mixolydian">Mixolydian</option>
+                    <option value="Locrian">Locrian</option>
+                    <optgroup label="Pentatonic Scales">
+                        <option value="major_pentatonic">Major Pentatonic</option>
+                        <option value="minor_pentatonic">Minor Pentatonic</option>
+                        <option value="blues_minor">Blues Scale (Minor Blues)</option>
+                    </optgroup>
+                    <optgroup label="Harmonic Minor Modes">
+                        <option value="harmonic_minor">Harmonic Minor</option>
+                        <option value="locrian_6">Locrian #6 (Mode 2)</option>
+                        <option value="ionian_5">Ionian #5 (Mode 3)</option>
+                        <option value="dorian_4">Dorian #4 (Mode 4)</option>
+                        <option value="phrygian_dominant">Phrygian Dominant (Mode 5)</option>
+                        <option value="lydian_2">Lydian #2 (Mode 6)</option>
+                        <option value="super_locrian_bb7">Super Locrian bb7 (Mode 7)</option>
+                    </optgroup>
+                    <optgroup label="Melodic Minor Modes">
+                        <option value="melodic_minor">Melodic Minor</option>
+                        <option value="dorian_b2">Dorian b2</option>
+                        <option value="lydian_augmented">Lydian Augmented</option>
+                        <option value="lydian_dominant">Lydian Dominant</option>
+                        <option value="mixolydian_b6">Mixolydian b6 (Aeolian Dominant)</option>
+                        <option value="locrian_2">Locrian #2</option>
+                        <option value="super_locrian">Super Locrian (Altered)</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="display-mode">Show As</label>
+                <select id="display-mode">
+                    <option value="notes">Notes</option>
+                    <option value="intervals">Intervals</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="chord-complexity">Chord Type</label>
+                <select id="chord-complexity">
+                    <option value="triad">Triads (3 Notes)</option>
+                    <option value="seventh">7th Chords (4 Notes)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="chord-select">Highlight Chord</label>
+                <select id="chord-select">
+                    <option value="none">None (Full Scale)</option>
+                    <!-- Populated by JS -->
+                </select>
+            </div>
+
+        </div>
+
+        <div class="legend-container">
+            <h3>Interval Legend</h3>
+            <div class="legend-items">
+                <div class="legend-item"><span class="badge int-R">R</span> Root</div>
+                <div class="legend-item"><span class="badge int-m2">m2</span> Minor 2nd</div>
+                <div class="legend-item"><span class="badge int-M2">M2</span> Major 2nd</div>
+                <div class="legend-item"><span class="badge int-m3">m3</span> Minor 3rd</div>
+                <div class="legend-item"><span class="badge int-M3">M3</span> Major 3rd</div>
+                <div class="legend-item"><span class="badge int-P4">P4</span> Perfect 4th</div>
+                <div class="legend-item"><span class="badge int-P5">P5</span> Perfect 5th</div>
+                <div class="legend-item"><span class="badge int-m6">m6</span> Minor 6th</div>
+                <div class="legend-item"><span class="badge int-M6">M6</span> Major 6th</div>
+                <div class="legend-item"><span class="badge int-m7">m7</span> Minor 7th</div>
+                <div class="legend-item"><span class="badge int-M7">M7</span> Major 7th</div>
+            </div>
+        </div>
+
+        <div class="fretboard-container">
+            <div id="fretboard">
+                <!-- Fretboard generated by JS -->
+            </div>
+        </div>
+
+        <div class="scale-info">
+            <h2>Current Scale: <span id="current-scale-name"></span></h2>
+            <h3 id="selected-chord-name" style="min-height: 1.5em; color: var(--accent-color);"></h3>
+            <div id="scale-notes" class="notes-display"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="static/music-theory.js"></script>
+    <script src="static/script.js"></script>
+</body>
+
+</html>

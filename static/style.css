@@ -1,0 +1,584 @@
+:root {
+    --bg-color: #0f1115;
+    --card-bg: #1a1d24;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --accent-color: #00d4ff;
+    --accent-glow: rgba(0, 212, 255, 0.3);
+    --fretboard-wood: #2a2a2a;
+    --string-color: #555;
+    --fret-color: #444;
+    --note-bg: #fff;
+    --note-text: #000;
+}
+
+body {
+    margin: 0;
+    font-family: 'Outfit', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.container {
+    width: 95%;
+    max-width: 1800px;
+    /* Increased from 1200px to fit full fretboard */
+    padding: 2rem;
+    text-align: center;
+    /* Restore text align */
+    position: relative;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.header-tools {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    display: flex;
+    gap: 1rem;
+    z-index: 100;
+}
+
+.tool-btn {
+    height: auto;
+    width: auto;
+    padding: 0.6rem 1.2rem;
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid #333;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.tool-btn:hover,
+.tool-btn:active {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.1);
+}
+
+.tool-btn.active {
+    background-color: var(--accent-color);
+    color: #000;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.settings-panel {
+    position: absolute;
+    top: 120%;
+    right: 0;
+    background-color: var(--card-bg);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 1.5rem;
+    min-width: 250px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    text-align: left;
+    z-index: 101;
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.2s ease;
+}
+
+.settings-panel.hidden {
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    visibility: hidden;
+}
+
+.settings-panel h3 {
+    margin-top: 0;
+    font-size: 1rem;
+    border-bottom: 1px solid #333;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+}
+
+header p {
+    color: var(--text-secondary);
+    margin-top: 0;
+    font-weight: 300;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin: 3rem 0;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+select {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid #333;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.1);
+    outline: none;
+}
+
+.action-btn {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid #333;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: none;
+    height: 100%;
+    /* Match select height if possible, or align items */
+    display: flex;
+    /* Centering */
+    align-items: center;
+    justify-content: center;
+    min-width: 140px;
+}
+
+.action-btn:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.action-btn:active {
+    transform: translateY(0);
+}
+
+/* Fretboard Styling */
+.fretboard-container {
+    overflow-x: auto;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    display: flex;
+    /* justify-content: center; REMOVED to prevent clipping start of overflowing content */
+}
+
+#fretboard {
+    background-color: var(--fretboard-wood);
+    margin: 0 auto;
+    /* Safely centers content when it fits, aligns start when it overflows */
+    padding: 40px 60px;
+    /* Nut padding */
+    border-radius: 12px;
+    position: relative;
+    display: inline-block;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    min-width: 1000px;
+    width: max-content;
+    /* Ensure background covers full scrolling width */
+    flex-shrink: 0;
+}
+
+.string {
+    height: 40px;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.string::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 2px;
+    background-color: var(--string-color);
+    z-index: 1;
+}
+
+/* Specific string gauges */
+.string:nth-child(1)::before {
+    height: 1px;
+}
+
+.string:nth-child(2)::before {
+    height: 1.5px;
+}
+
+.string:nth-child(3)::before {
+    height: 2px;
+}
+
+.string:nth-child(4)::before {
+    height: 2.5px;
+}
+
+.string:nth-child(5)::before {
+    height: 3px;
+}
+
+.string:nth-child(6)::before {
+    height: 4px;
+}
+
+.fret-line {
+    position: absolute;
+    top: 40px;
+    /* Offset by container padding */
+    /* bottom: 0; Removed to respect JS height */
+    width: 4px;
+    background-color: var(--fret-color);
+    z-index: 0;
+}
+
+.fret-marker {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #3a3a3a;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 0;
+    margin-top: 40px;
+    /* Offset by container padding */
+}
+
+.fret-number {
+    position: absolute;
+    bottom: 5px;
+    /* Within the bottom padding */
+    transform: translateX(-50%);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    width: 30px;
+    text-align: center;
+}
+
+/* Note Markers on Fretboard */
+/* Critical: top: 50% aligns vertically on the string */
+/* Critical: border must be solid to be visible */
+.note-marker {
+    width: 32px;
+    height: 32px;
+    background-color: var(--card-bg);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    transform: translate(-50%, -50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: 2px solid #555;
+    /* Default visible border */
+    color: var(--text-primary);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+    /* Indicates interaction (audio) */
+}
+
+/* Info Section (Scale Name & Badge List) */
+.scale-info h2 {
+    font-weight: 300;
+    margin-bottom: 1rem;
+}
+
+#current-scale-name {
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+.notes-display {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Note Badges in the list */
+.note-badge {
+    padding: 0.5rem 1rem;
+    background-color: var(--card-bg);
+    border-radius: 20px;
+    border: 2px solid #333;
+    font-weight: 600;
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+/* Legend Styles */
+.legend-container {
+    background-color: var(--card-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    display: inline-block;
+    border: 1px solid #333;
+}
+
+.legend-container h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.legend-items {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.legend-item .badge {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: var(--card-bg);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.8rem;
+    border: 2px solid #444;
+}
+
+
+/* --- COLOR PALETTE --- */
+/* Priorities: !important ensures these colors override the default border */
+
+.int-R {
+    border-color: #00d4ff !important;
+    color: #00d4ff !important;
+}
+
+.int-m2 {
+    border-color: #ff6b6b !important;
+    color: #ff6b6b !important;
+}
+
+.int-M2 {
+    border-color: #ff9f43 !important;
+    color: #ff9f43 !important;
+}
+
+.int-m3 {
+    border-color: #feca57 !important;
+    color: #feca57 !important;
+}
+
+.int-M3 {
+    border-color: #f1c40f !important;
+    color: #f1c40f !important;
+}
+
+.int-P4 {
+    border-color: #2ecc71 !important;
+    color: #2ecc71 !important;
+}
+
+.int-d5 {
+    border-color: #9b59b6 !important;
+    color: #9b59b6 !important;
+}
+
+.int-P5 {
+    border-color: #3498db !important;
+    color: #3498db !important;
+}
+
+.int-m6 {
+    border-color: #8e44ad !important;
+    color: #8e44ad !important;
+}
+
+.int-M6 {
+    border-color: #D980FA !important;
+    color: #D980FA !important;
+}
+
+.int-m7 {
+    border-color: #1abc9c !important;
+    color: #1abc9c !important;
+}
+
+.int-M7 {
+    border-color: #e91e63 !important;
+    color: #e91e63 !important;
+}
+
+
+/* --- HIGHLIGHT LOGIC --- */
+/* Fill background when highlighted */
+.highlight-chord.int-R {
+    background-color: #00d4ff;
+    color: #000 !important;
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
+}
+
+.highlight-chord.int-m2 {
+    background-color: #ff6b6b;
+    color: #000 !important;
+    box-shadow: 0 0 15px rgba(255, 107, 107, 0.6);
+}
+
+.highlight-chord.int-M2 {
+    background-color: #ff9f43;
+    color: #000 !important;
+    box-shadow: 0 0 15px rgba(255, 159, 67, 0.6);
+}
+
+.highlight-chord.int-m3 {
+    background-color: #feca57;
+    color: #000 !important;
+    box-shadow: 0 0 15px rgba(254, 202, 87, 0.6);
+}
+
+.highlight-chord.int-M3 {
+    background-color: #f1c40f;
+    color: #000 !important;
+    box-shadow: 0 0 15px rgba(241, 196, 15, 0.6);
+}
+
+.highlight-chord.int-P4 {
+    background-color: #2ecc71;
+    color: #000 !important;
+    box-shadow: 0 0 15px rgba(46, 204, 113, 0.6);
+}
+
+.highlight-chord.int-d5 {
+    background-color: #9b59b6;
+    color: #000 !important;
+    box-shadow: 0 0 15px rgba(155, 89, 182, 0.6);
+}
+
+.highlight-chord.int-P5 {
+    background-color: #3498db;
+    color: #000 !important;
+    box-shadow: 0 0 15px rgba(52, 152, 219, 0.6);
+}
+
+.highlight-chord.int-m6 {
+    background-color: #8e44ad;
+    color: #000 !important;
+    box-shadow: 0 0 15px rgba(142, 68, 173, 0.6);
+}
+
+.highlight-chord.int-M6 {
+    background-color: #D980FA;
+    color: #000 !important;
+    box-shadow: 0 0 15px rgba(217, 128, 250, 0.6);
+}
+
+.highlight-chord.int-m7 {
+    background-color: #1abc9c;
+    color: #000 !important;
+    box-shadow: 0 0 15px rgba(26, 188, 156, 0.6);
+}
+
+.highlight-chord.int-M7 {
+    background-color: #e91e63;
+    color: #000 !important;
+    box-shadow: 0 0 15px rgba(233, 30, 99, 0.6);
+}
+
+/* Root note always filled on fretboard for visibility */
+.note-marker.int-R {
+    background-color: #00d4ff;
+    color: #000 !important;
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+}
+
+
+/* Dimmed State (Non-Chord Scale Notes) */
+.dimmed {
+    opacity: 0.5 !important;
+    /* Visible but distinct from highlighted */
+    box-shadow: none !important;
+    /* Removed color/border overrides so original interval colors show */
+}
+
+.note-marker.dimmed {
+    transform: translate(-50%, -50%) scale(0.9);
+    /* Slight shrink */
+}
+
+.note-badge.dimmed {
+    transform: scale(0.95);
+    opacity: 0.6 !important;
+    box-shadow: none !important;
+}
+
+/* Default styling for Root Badge in List */
+.root-badge-default {
+    background-color: transparent;
+    border-color: #00d4ff !important;
+    color: #00d4ff !important;
+    box-shadow: 0 0 5px rgba(0, 212, 255, 0.2);
+}
+
+/* Characteristic Note Highlight */
+.characteristic {
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.8), inset 0 0 5px rgba(255, 215, 0, 0.5) !important;
+    border-color: #ffd700 !important;
+    /* Gold */
+    z-index: 5;
+    animation: pulse-gold 2s infinite;
+}
+
+@keyframes pulse-gold {
+    0% {
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 0 12px rgba(255, 215, 0, 0.9);
+    }
+
+    100% {
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+    }
+}
