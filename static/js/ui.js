@@ -1,6 +1,6 @@
-import { MusicTheory } from './music-theory.js';
 
-export class UI {
+
+class UI {
     constructor(audioEngine, state) {
         this.audioEngine = audioEngine;
         this.state = state;
